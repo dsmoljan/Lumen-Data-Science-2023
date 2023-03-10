@@ -9,6 +9,9 @@ genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
 train_root_dir = "../../../Dataset/IRMAS_Training_Data"
 test_root_dir = "../../../Dataset/IRMAS_Validation_Data"
 
+train_prefix = "IRMAS_Training_Data"
+test_prefix = "IRMAS_Validation_Data"
+
 def walk_directory_train_data(root_dir):
     file_info = []
     for class_folder in os.listdir(root_dir):
@@ -34,7 +37,7 @@ def walk_directory_train_data(root_dir):
             file_info.append({
                 "class": class_folder,
                 "file_name": file_name,
-                "file_path": abs_file_path,
+                "file_path": train_prefix + "/" + class_folder + "/" + file_name,
                 "audio_length": audio_length,
                 "genre": genre,
                 "drums": drums
@@ -70,7 +73,7 @@ def walk_directory_test_data(root_dir):
         file_info.append({
             "classes": classes,
             "file_name": file,
-            "file_path": abs_file_path,
+            "file_path": test_prefix + "/" + file,
             "audio_length": audio_length
         })
 
