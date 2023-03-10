@@ -61,6 +61,7 @@ def walk_directory_test_data(root_dir):
         classes = []
         with open(txt_file_path, "r") as f:
             classes = f.read().replace("\t", "").split("\n")
+            classes = [c for c in classes if c != ""]
 
         abs_file_path = os.path.abspath(wav_file_path)
 
