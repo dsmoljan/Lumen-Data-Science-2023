@@ -12,10 +12,15 @@ test_root_dir = "../../../Dataset/IRMAS_Validation_Data"
 train_prefix = "IRMAS_Training_Data"
 test_prefix = "IRMAS_Validation_Data"
 
+class_mappings = {"cel": 0, "cla": 1, "flu": 2, "gac": 3, "gel": 4, "org": 5, "pia": 6, "sax": 7, "tru": 8, "vio": 9,
+                  "voi": 10}
+
+
 def walk_directory_train_data(root_dir):
     file_info = []
     for class_folder in os.listdir(root_dir):
         class_folder_path = os.path.join(root_dir, class_folder)
+        class_id = class_mappings[class_folder]
 
         for file_name in os.listdir(class_folder_path):
             file_path = os.path.join(class_folder_path, file_name)
@@ -35,7 +40,8 @@ def walk_directory_train_data(root_dir):
                 drums = False
 
             file_info.append({
-                "class": class_folder,
+                "classes": [class_folder],
+                "classes_id": [class_id],
                 "file_name": file_name,
                 "file_path": train_prefix + "/" + class_folder + "/" + file_name,
                 "audio_length": audio_length,
@@ -66,12 +72,15 @@ def walk_directory_test_data(root_dir):
             classes = f.read().replace("\t", "").split("\n")
             classes = [c for c in classes if c != ""]
 
+        classes_id = [class_mappings[c] for c in classes]
+
         abs_file_path = os.path.abspath(wav_file_path)
 
         audio_length = librosa.get_duration(filename=wav_file_path)
 
         file_info.append({
             "classes": classes,
+            "classes_id": classes_id,
             "file_name": file,
             "file_path": test_prefix + "/" + file,
             "audio_length": audio_length
