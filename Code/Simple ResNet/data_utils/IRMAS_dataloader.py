@@ -14,9 +14,6 @@ import random
 from torchvision.transforms import Resize, CenterCrop, ToTensor, Normalize, Compose
 
 
-
-# ugl kako su oni ljudi to napravilih https://github.com/micmarty/Instronizer/blob/master/src/preprocessor/wav_to_spectrograms.py, pa pogledaj prije nego ćeš ti raditi svoju implementaciju
-
 # convert
 # dual-channel data to single channel
 # this is not necessary if we're using librosa to load audio files, as it already converts all channels to mono!
