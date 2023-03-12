@@ -33,7 +33,7 @@ def add_noise(y, sr, mean, std_dev, alpha=0.005):
     return y + alpha * noise
 
 def pitch_shift(y, sr, range=6):
-    return lr.effects.pitch_shift(y, sr, random.uniform(-range, range))
+    return lr.effects.pitch_shift(y, sr=sr, n_steps=random.uniform(-range, range))
 
 
 # shift limit is the maximum percentage of total audio length we want to be able to shift by
@@ -41,7 +41,7 @@ def pitch_shift(y, sr, range=6):
 def time_shift(audio_file, shift_limit=0.4):
     sig_len = audio_file.shape[0]
     shift_amount = int(random.uniform(-1, 1) * shift_limit * sig_len)
-    print(shift_amount)
+    #print(shift_amount)
     return np.roll(audio_file, shift_amount)
 
 

@@ -8,7 +8,7 @@ train_root_dir = "../../../Dataset/"
 
 # train set: Mean: -0.000404580, std. deviation: 0.108187131
 def calculate_mean_and_std_deviation(target_sr):
-    df = pd.read_csv("test.csv")
+    df = pd.read_csv("test_original.csv")
     df_dict = df.to_dict('records')
     mean_sum = 0
     std_dev_sum = 0

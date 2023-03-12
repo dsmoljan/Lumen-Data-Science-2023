@@ -95,7 +95,7 @@ def main():
     df_train = walk_directory_train_data(train_root_dir)
     df_test = walk_directory_test_data(test_root_dir)
     df_train.to_csv("train.csv")
-    df_test.to_csv("test.csv")
+    df_test.to_csv("test_original.csv")
 
     print("Train and test .csv files generated")
 
