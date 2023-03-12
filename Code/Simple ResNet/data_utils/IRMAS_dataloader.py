@@ -167,10 +167,6 @@ class IRMASDataset(Dataset):
         spectogram_tensor = torch.from_numpy(resized_spectogram)
         spectogram_tensor = torch.unsqueeze(spectogram_tensor, 0)
 
-        # TODO: kriv ti je format target_classes, trenutno je pandas series, a treba biti ili niz brojeva, ili one-hot vektor
-        # kaze Bing da treba biti one-hot vektor, npr.
-        # [1 0 0 0 0 0 0 0 0 0 1] bi bilo ako su aktivne klase 0 i 10 u primjeru
-        # naravno, to treba biti tenzor
         return spectogram_tensor, target
 
     def __len__(self):
