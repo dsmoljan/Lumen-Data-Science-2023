@@ -1,5 +1,5 @@
 import os
-import pdb
+import ast
 
 import pandas as pd
 import numpy as np
@@ -12,6 +12,9 @@ from torch.utils.data import Dataset
 from PIL import Image
 import random
 from torchvision.transforms import Resize, CenterCrop, ToTensor, Normalize, Compose
+from skimage.transform import resize
+
+NO_CLASSES = 11
 
 
 # convert
@@ -127,7 +130,14 @@ class IRMASDataset(Dataset):
         example = self.examples.iloc[[index]]["file_path"]
         audio_file_path = os.path.join(self.data_root_path, self.examples.iloc[[index]]["file_path"].item())
         audio_file, sr = lr.load(audio_file_path, sr=self.sr)
-        target_classes = self.examples.loc[[index]]["classes_id"]
+        target_classes = self.examples.loc[[index]]["classes_id"].item()
+
+        label_list = ast.literal_eval(target_classes)
+        one_hot_vector = [0] * NO_CLASSES
+        for i in label_list:
+            one_hot_vector[i] = 1
+
+        target = torch.tensor(one_hot_vector)
 
         assert sr == self.sr
 
@@ -151,10 +161,17 @@ class IRMASDataset(Dataset):
 
 
         spectogram = spectogram_to_db(spectogram)
-        transform = get_spectogram_transformation(self.spec_height, self.spec_width)
-        spectogram_tensor = transform(spectogram)
+        #transform = get_spectogram_transformation(self.spec_height, self.spec_width)
+        resized_spectogram = resize(spectogram, (self.spec_height, self.spec_width))
 
-        return spectogram_tensor, target_classes
+        spectogram_tensor = torch.from_numpy(resized_spectogram)
+        spectogram_tensor = torch.unsqueeze(spectogram_tensor, 0)
+
+        # TODO: kriv ti je format target_classes, trenutno je pandas series, a treba biti ili niz brojeva, ili one-hot vektor
+        # kaze Bing da treba biti one-hot vektor, npr.
+        # [1 0 0 0 0 0 0 0 0 0 1] bi bilo ako su aktivne klase 0 i 10 u primjeru
+        # naravno, to treba biti tenzor
+        return spectogram_tensor, target
 
     def __len__(self):
         return len(self.examples)
