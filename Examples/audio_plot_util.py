@@ -33,13 +33,10 @@ def plot_spectrograms(audio_file):
     fig.colorbar(img, ax=ax, format='%+2.0f dB')
     
 # generate a spectrogram from a given numpy array and SR
-def plot_spectrograms_np(y, sr):
+def plot_spectrograms_np(y, sr, ax):
     D = librosa.stft(y)
     H, P = librosa.decompose.hpss(D)
     S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
-    fig, ax = plt.subplots(nrows=4, sharex=True, sharey=True)
-    # increase fig size
-    fig.set_size_inches(15, 14)
 
     img = librosa.display.specshow(librosa.amplitude_to_db(
         np.abs(D), ref=np.max), y_axis='log', x_axis='time', ax=ax[0])
@@ -52,11 +49,33 @@ def plot_spectrograms_np(y, sr):
     librosa.display.specshow(librosa.amplitude_to_db(
         np.abs(P), ref=np.max(np.abs(D))), y_axis='log', x_axis='time', ax=ax[2])
     ax[2].set(title='Percussive power spectrogram')
-    librosa.display.specshow(librosa.power_to_db(
-        S, ref=np.max), y_axis='mel', x_axis='time', sr=sr)
-    ax[3].set(title='Mel spectrogram')
+    
+    
+def plot_signal_info(y, sr, ax, title):
+    D = librosa.stft(y)
+    H, P = librosa.decompose.hpss(D)
+    S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
 
-    fig.colorbar(img, ax=ax, format='%+2.0f dB')
+    img = librosa.display.specshow(librosa.amplitude_to_db(
+        np.abs(D), ref=np.max), y_axis='log', x_axis='time', ax=ax[0])
+    ax[0].set(title=title + ": " + 'Full power spectrogram')
+    ax[0].label_outer()
+    
+    librosa.display.specshow(librosa.amplitude_to_db(
+        np.abs(H), ref=np.max(np.abs(D))), y_axis='log', x_axis='time', ax=ax[1])
+    ax[1].set(title=title + ": " + 'Harmonic power spectrogram')
+    ax[1].label_outer()
+    
+    librosa.display.specshow(librosa.amplitude_to_db(
+        np.abs(P), ref=np.max(np.abs(D))), y_axis='log', x_axis='time', ax=ax[2])
+    ax[2].set(title=title + ": " + 'Percussive power spectrogram')
+    
+    librosa.display.specshow(librosa.power_to_db(
+        S, ref=np.max), y_axis='mel', x_axis='time', sr=sr, ax=ax[3])
+    ax[3].set(title=title + ": " + 'Mel spectrogram')
+    
+    librosa.display.waveshow(y, sr=sr, ax=ax[4])
+    ax[4].set(title=title + ": " + "Signal intensity")
 
 
 def listen_to_audio(audio_file):

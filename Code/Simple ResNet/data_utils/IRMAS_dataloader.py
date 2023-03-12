@@ -127,7 +127,6 @@ class IRMASDataset(Dataset):
             raise (f'{self.name} not defined')
 
     def __getitem__(self, index):
-        example = self.examples.iloc[[index]]["file_path"]
         audio_file_path = os.path.join(self.data_root_path, self.examples.iloc[[index]]["file_path"].item())
         audio_file, sr = lr.load(audio_file_path, sr=self.sr)
         target_classes = self.examples.loc[[index]]["classes_id"].item()
@@ -137,7 +136,8 @@ class IRMASDataset(Dataset):
         for i in label_list:
             one_hot_vector[i] = 1
 
-        target = torch.tensor(one_hot_vector)
+        # TODO: provjeri je li ovaj target.float OK
+        target = torch.tensor(one_hot_vector).float()
 
         assert sr == self.sr
 
@@ -150,7 +150,7 @@ class IRMASDataset(Dataset):
             audio_file = time_shift(audio_file)
 
         if self.return_type == 'audio':
-            return torch.from_numpy(audio_file), target_classes
+            return torch.from_numpy(audio_file).float(), target
 
         spectogram = audio_to_spectogram(audio_file, self.sr, self.n_mels)
 
@@ -164,10 +164,12 @@ class IRMASDataset(Dataset):
         #transform = get_spectogram_transformation(self.spec_height, self.spec_width)
         resized_spectogram = resize(spectogram, (self.spec_height, self.spec_width))
 
-        spectogram_tensor = torch.from_numpy(resized_spectogram)
+        spectogram_tensor = torch.from_numpy(resized_spectogram).float()
         spectogram_tensor = torch.unsqueeze(spectogram_tensor, 0)
 
-        return spectogram_tensor, target
+        # ovaj repeat je samo da dobijemo rgb sliku iz 1-kanalnog spektograma
+        # pa ponavljamo samo 1 kanal 3x
+        return spectogram_tensor.repeat(3,1,1), target.float()
 
     def __len__(self):
         return len(self.examples)
