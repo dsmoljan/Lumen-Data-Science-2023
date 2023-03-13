@@ -107,3 +107,5 @@
 -   zanimljivo zbog činjenice da tvrde da je IRMAS jako loš dataset -> da ima jako puno krivo označenih primjera, te da su primjeri iz malog skupa pjesama
     
 -   također da je nebalansiran po instrumentima
+
+Bitna napomena: uskoro stiže PyTorch 2.0, koji uvodi model = torch.compile(model) funkcionalnost, koja može znatno ubrzati treniranje -> stoga ne zaboraviti to implementirati!
