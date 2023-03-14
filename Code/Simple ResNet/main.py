@@ -1,12 +1,12 @@
 from argparse import ArgumentParser
 import model as md
 
-
+# lr = 0.0002 radi drastično bolje nego lr 0.001
 def get_args():
     parser = ArgumentParser(description='IRMAS ResNet model PyTorch')
     parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--batch_size', type=int, default=2)
-    parser.add_argument('--lr', type=float, default=.001)
+    parser.add_argument('--lr', type=float, default=.0002)
     parser.add_argument('--gpu_ids', type=str, default='0')
     parser.add_argument('--crop_height', type=int, default=20)
     parser.add_argument('--crop_width', type=int, default=40)

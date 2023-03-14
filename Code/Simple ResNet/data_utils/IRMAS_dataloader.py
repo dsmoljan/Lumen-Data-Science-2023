@@ -128,7 +128,7 @@ class IRMASDataset(Dataset):
 
     def __getitem__(self, index):
         audio_file_path = os.path.join(self.data_root_path, self.examples.iloc[[index]]["file_path"].item())
-        audio_file, sr = lr.load(audio_file_path, sr=self.sr)
+        audio_file, sr = lr.load(audio_file_path.encode('utf-8'), sr=self.sr)
         target_classes = self.examples.loc[[index]]["classes_id"].item()
 
         label_list = ast.literal_eval(target_classes)
