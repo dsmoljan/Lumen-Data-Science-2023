@@ -1,13 +1,15 @@
+import torch
 import os
+from sklearn.model_selection import train_test_split
 import pandas as pd
-import librosa
+import librosa as lr
+import numpy as np
 
-df = None
 
 genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
 
-train_root_dir = "../../../Dataset/IRMAS_Training_Data"
-test_root_dir = "../../../Dataset/IRMAS_Validation_Data"
+data_root_dir = "../../../Dataset"
+datalists_dir = "../../../Dataset/datalists"
 
 train_prefix = "IRMAS_Training_Data"
 test_prefix = "IRMAS_Validation_Data"
@@ -15,6 +17,7 @@ test_prefix = "IRMAS_Validation_Data"
 class_mappings = {"cel": 0, "cla": 1, "flu": 2, "gac": 3, "gel": 4, "org": 5, "pia": 6, "sax": 7, "tru": 8, "vio": 9,
                   "voi": 10}
 
+VAL_PERCENTAGE = 0.3
 
 def walk_directory_train_data(root_dir):
     file_info = []
@@ -25,9 +28,9 @@ def walk_directory_train_data(root_dir):
         for file_name in os.listdir(class_folder_path):
             file_path = os.path.join(class_folder_path, file_name)
 
-            abs_file_path = os.path.abspath(file_path)
+            #abs_file_path = os.path.abspath(file_path)
 
-            audio_length = librosa.get_duration(filename=file_path)
+            audio_length = lr.get_duration(filename=file_path)
             genre = None
             drums = None
             for g in genres:
@@ -74,9 +77,9 @@ def walk_directory_test_data(root_dir):
 
         classes_id = [class_mappings[c] for c in classes]
 
-        abs_file_path = os.path.abspath(wav_file_path)
+        #abs_file_path = os.path.abspath(wav_file_path)
 
-        audio_length = librosa.get_duration(filename=wav_file_path)
+        audio_length = lr.get_duration(filename=wav_file_path)
 
         file_info.append({
             "classes": classes,
@@ -88,16 +91,38 @@ def walk_directory_test_data(root_dir):
 
     return pd.DataFrame(file_info)
 
-
-def main():
-    print("Starting directory walking util.")
-
-    df_train = walk_directory_train_data(train_root_dir)
-    df_test = walk_directory_test_data(test_root_dir)
-    df_train.to_csv("train.csv")
-    df_test.to_csv("test_original.csv")
-
-    print("Train and test .csv files generated")
+def test_val_split():
+    # Load the data from the .csv file
+    data = pd.read_csv(os.path.join(datalists_dir, 'test_original.csv'))
+    test_data, val_data = train_test_split(data, test_size=VAL_PERCENTAGE)
+    #test_data = test_data.drop('Unnamed: 0', axis=1)
+    test_data.to_csv(os.path.join(datalists_dir, 'test.csv'), index=False)
+    val_data.to_csv(os.path.join(datalists_dir, 'val.csv'), index=False)
 
 
-main()
+#Number of records: 6705
+#Split: train; Mean: -0.000404580, std. deviation: 0.108187131
+
+#Number of records: 2874
+#Split: test; Mean: -0.000190258, std. deviation: 0.131417455
+def calculate_mean_and_std_deviation(target_sr, split):
+    assert split in ["train", "test"], "Split must be either 'train' or 'test'"
+    df = pd.read_csv(os.path.join(datalists_dir, "test_original.csv")) if split == "test" else pd.read_csv(os.path.join(datalists_dir, "train.csv"))
+    df_dict = df.to_dict('records')
+    mean_sum = 0
+    std_dev_sum = 0
+    count = 0
+    for row in df_dict:
+        path = row["file_path"]
+        file_path = os.path.join(data_root_dir, path)
+        y,_ = lr.load(file_path, sr=target_sr)
+        mean_sum += np.mean(y)
+        std_dev_sum += np.std(y)
+        count += 1
+
+    mean_sum /= count
+    std_dev_sum /= count
+
+    print('Number of records:', count)
+
+    print(f"Split: {split}; Mean: {mean_sum:.9f}, std. deviation: {std_dev_sum:.9f}")
