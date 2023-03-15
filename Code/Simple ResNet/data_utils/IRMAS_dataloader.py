@@ -86,18 +86,9 @@ def time_mask(spec, time=None, num_masks=1):
         mask_end = random.randrange(zero, zero + t)
         masked[:, zero:mask_end] = masked.mean()
     return masked
-
-def get_spectogram_transformation(height, width):
-    transform_list = [
-        Resize((height, width)),
-        CenterCrop((height, width)),
-        ToTensor()
-    ]
-    return Compose(transform_list)
-
 class IRMASDataset(Dataset):
     def __init__(self, data_root_path, data_mean, data_std, n_mels=128, spec_height=None, name='train', audio_augmentation=False,
-                 spectogram_augmentation=False, sr=44100, return_type="audio"):
+                 spectogram_augmentation=False, sr=44100, return_type="audio", use_window=False, window_size=None):
         super(IRMASDataset, self).__init__()
         self.data_root_path = data_root_path
         self.audio_augmentation = audio_augmentation
@@ -110,6 +101,8 @@ class IRMASDataset(Dataset):
         self.spec_height = spec_height
         self.spec_width = self.n_mels
         self.return_type = return_type
+        self.use_window = use_window
+        self.window_size = window_size
 
         if self.spec_height == None:
             self.spec_height = self.n_mels
@@ -128,7 +121,7 @@ class IRMASDataset(Dataset):
 
     def __getitem__(self, index):
         audio_file_path = os.path.join(self.data_root_path, self.examples.iloc[[index]]["file_path"].item())
-        audio_file, sr = lr.load(audio_file_path.encode('utf-8'), sr=self.sr)
+        audio_file, sr = lr.load(audio_file_path, sr=self.sr)
         target_classes = self.examples.loc[[index]]["classes_id"].item()
 
         label_list = ast.literal_eval(target_classes)
@@ -136,7 +129,6 @@ class IRMASDataset(Dataset):
         for i in label_list:
             one_hot_vector[i] = 1
 
-        # TODO: provjeri je li ovaj target.float OK
         target = torch.tensor(one_hot_vector).float()
 
         assert sr == self.sr
@@ -149,9 +141,36 @@ class IRMASDataset(Dataset):
             audio_file = pitch_shift(audio_file, sr)
             audio_file = time_shift(audio_file)
 
-        if self.return_type == 'audio':
-            return torch.from_numpy(audio_file).float(), target
+        audio_windows = []
 
+        samples_per_interval = self.sr * self.window_size
+        num_intervals = int(np.ceil(len(audio_file) / samples_per_interval))
+        for i in range(num_intervals):
+            start = i * samples_per_interval
+            end = min(start + samples_per_interval, len(audio_file))
+            interval_audio = audio_file[start:end]
+            audio_windows.append(interval_audio)
+
+        if self.return_type == 'audio':
+            if (self.use_window):
+                for i in range(len(audio_windows)):
+                    audio_windows[i] = torch.from_numpy(audio_windows[i]).float()
+                return audio_windows, target
+            else:
+                return torch.from_numpy(audio_file).float(), target
+
+        if (self.use_window):
+            for i in range(len(audio_windows)):
+                audio_windows[i] = self.get_spectogram(audio_windows[i])
+            return audio_windows, target.float()
+        else:
+            spectogram_tensor =self.get_spectogram(audio_file)
+            return spectogram_tensor, target.float()
+
+    def __len__(self):
+        return len(self.examples)
+
+    def get_spectogram(self, audio_file):
         spectogram = audio_to_spectogram(audio_file, self.sr, self.n_mels)
 
         # tenzor se prvo mora augmentirati, a tek onda skalirati!
@@ -169,7 +188,4 @@ class IRMASDataset(Dataset):
 
         # ovaj repeat je samo da dobijemo rgb sliku iz 1-kanalnog spektograma
         # pa ponavljamo samo 1 kanal 3x
-        return spectogram_tensor.repeat(3,1,1), target.float()
-
-    def __len__(self):
-        return len(self.examples)
+        return spectogram_tensor.repeat(3,1,1)

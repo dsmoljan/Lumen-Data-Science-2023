@@ -171,7 +171,7 @@ class classifierModel(object):
             self.writer_classifier.add_scalars('Val Metrics', {'CE Loss': val_loss, 'Accuracy': result['accuracy_score'],
                                                                'Micro F1': result['micro/f1'],
                                                                'Macro F1': result['macro/f1'],
-                                                               'Samples F1': result['accuracy_score']},epoch)
+                                                               'Samples F1': result['samples/f1']},epoch)
 
             if (result['macro/f1'] > self.best_macro_f1):
                 self.best_macro_f1 = result['macro/f1']
@@ -200,18 +200,28 @@ class classifierModel(object):
         outputs_list = []
         targets_list = []
 
-        test_set = IRMASDataset(self.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=128, name='test', audio_augmentation=False, spectogram_augmentation=False, sr=44100, return_type='image')
+        test_set = IRMASDataset(self.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='test', audio_augmentation=False, spectogram_augmentation=False, sr=44100, return_type='image', use_window=True, window_size=3)
         test_loader = DataLoader(test_set, batch_size=self.args.batch_size, shuffle=True, drop_last=True)
 
 
         with torch.no_grad():
-            for i, (imgs, targets) in enumerate(test_loader):
-                imgs = imgs.to(self.device)
-                targets = targets.to(self.device)
+            # trenutno kad se koristi ova metoda natch size mora biti 1
+            # i analysis window size treba biti 1s, takav je najbolji
+            for i, (img_list, targets) in enumerate(test_loader):
+                current_file_predictions = np.zeros(NO_CLASSES)
+                max_val = 0
+                for imgs in img_list:
+                    imgs = imgs.to(self.device)
+                    targets = targets.to(self.device)
+                    outputs = self.forward(imgs).cpu().numpy()
 
-                outputs = self.forward(imgs)
+                    if (np.max(outputs) > max_val):
+                        max_val = np.max(outputs)
 
-                outputs_list.extend(outputs.cpu().numpy())
+                    current_file_predictions = np.add(outputs, current_file_predictions)
+
+                current_file_predictions /= max_val
+                outputs_list.extend(current_file_predictions)
                 targets_list.extend(targets.cpu().numpy())
 
             result = calculate_metrics(np.array(outputs_list), np.array(targets_list))
@@ -238,5 +248,6 @@ def calculate_metrics(pred, target, threshold=0.5):
             'samples/f1': f1_score(y_true=target, y_pred=pred, average='samples'),
             'accuracy_score': accuracy_score(y_true=target, y_pred=pred)
             }
+
 
 
