@@ -32,10 +32,10 @@ class Conv1DModel(nn.Module):
     """
     def __init__(self, args):
         super(Conv1DModel, self).__init__()
-        self.conv1 = nn.Conv1d(1, 32, kernel_size=80, stride=16)
+        self.conv1 = nn.Conv1d(1, 32, kernel_size=440, stride=2)
         self.bn1 = nn.BatchNorm1d(32)
         self.pool1 = nn.MaxPool1d(4)
-        self.conv2 = nn.Conv1d(32, 32, kernel_size=3)
+        self.conv2 = nn.Conv1d(32, 32, kernel_size=6)
         self.bn2 = nn.BatchNorm1d(32)
         self.pool2 = nn.MaxPool1d(4)
         self.conv3 = nn.Conv1d(32, 64, kernel_size=3)
@@ -44,7 +44,19 @@ class Conv1DModel(nn.Module):
         self.conv4 = nn.Conv1d(64, 64, kernel_size=3)
         self.bn4 = nn.BatchNorm1d(64)
         self.pool4 = nn.MaxPool1d(4)
-        self.fc1 = nn.Linear(64, NO_CLASSES)
+        self.conv5 = nn.Conv1d(64, 128, kernel_size=3)
+        self.bn5 = nn.BatchNorm1d(128)
+        self.pool5 = nn.MaxPool1d(4)
+        self.conv6 = nn.Conv1d(128, 128, kernel_size=3)
+        self.bn6 = nn.BatchNorm1d(128)
+        self.pool6 = nn.MaxPool1d(4)
+        self.conv7 = nn.Conv1d(128, 256, kernel_size=3)
+        self.bn7 = nn.BatchNorm1d(256)
+        self.pool7 = nn.MaxPool1d(4)
+        self.fc1 = nn.Linear(256, 64)
+        self.dropout1 = nn.Dropout(0.2)
+        self.fc2 = nn.Linear(64, NO_CLASSES)
+        self.relu = nn.ReLU()
         self.args = args
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.criterion = nn.BCELoss()
@@ -68,21 +80,20 @@ class Conv1DModel(nn.Module):
         self.to(self.device)
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = F.relu(self.bn1(x))
-        x = self.pool1(x)
-        x = self.conv2(x)
-        x = F.relu(self.bn2(x))
-        x = self.pool2(x)
-        x = self.conv3(x)
-        x = F.relu(self.bn3(x))
-        x = self.pool3(x)
-        x = self.conv4(x)
-        x = F.relu(self.bn4(x))
-        x = self.pool4(x)
+        x = nn.Sequential(
+            self.conv1, self.relu, self.bn1, self.pool1, 
+            self.conv2, self.relu, self.bn2, self.pool2, 
+            self.conv3, self.relu, self.bn3, self.pool3, 
+            self.conv4, self.relu, self.bn4, self.pool4, 
+            self.conv5, self.relu, self.bn5, self.pool5, 
+            self.conv6, self.relu, self.bn6, self.pool6, 
+            self.conv7, self.relu, self.bn7, self.pool7
+            )(x)
+
+
         x = F.avg_pool1d(x, x.shape[-1])
         x = torch.squeeze(x, 2)
-        x = self.fc1(x)
+        x = nn.Sequential(self.fc1, self.dropout1, self.fc2)(x)
         return x
     
     def predict(self, x):
@@ -132,7 +143,11 @@ def train(model):
 
 # evaluation loop
 def eval(model, epoch):
-    val_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='val', audio_augmentation=False, spectogram_augmentation=False, sr=model.args.sr, return_type='audio', audio_length=model.args.sr*3)
+    val_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='val', audio_augmentation=False, spectogram_augmentation=False, sr=model.args.sr, return_type='audio', use_window=True, window_size=3)
+    
+    
+    #TODO: add collate function to pad/truncate different nnumber of windows in different files to the same size
+    
     val_loader = DataLoader(val_set, batch_size=model.args.batch_size, shuffle=False, drop_last=True)
     val_loss = 0
 
@@ -141,16 +156,25 @@ def eval(model, epoch):
         targets_list = []
 
         model.eval()
-        for data, target in tqdm(val_loader, desc='Validation', leave=False, total=len(val_loader)):
-            data, target = data.to(model.device), target.to(model.device)
-            output = model.activation(model(data))
-            outputs_list.extend(output.cpu().numpy())
+        for audio_list, target in tqdm(val_loader, desc='Validation', leave=False, total=len(val_loader)):
+            print("HERE")
+            current_audio_predictions = np.zeros_like(target.cpu().numpy(), dtype=np.float32)
+            max_val = np.zeros(model.args.batch_size, dtype=np.float32)
+            for audio in audio_list:
+                data, target = audio.to(model.device), target.to(model.device)
+                output = model.activation(model(data)).cpu().numpy()
+
+                # set max_value to maximum value in the batch if it is greater than the current max value
+                max_val = np.maximum(max_val, np.max(output, axis=1))
+
+                current_audio_predictions += output
+
+            current_audio_predictions /= max_val[:, np.newaxis]
+            outputs_list.extend(current_audio_predictions)
             targets_list.extend(target.cpu().numpy())
-            loss = model.criterion(output, target)
-            val_loss += loss.item()
 
     
-        val_loss /= len(val_loader)
+        val_loss = model.criterion(torch.tensor(outputs_list), torch.tensor(targets_list))
         model.scheduler.step(val_loss)
         result = calculate_metrics(np.array(outputs_list), np.array(targets_list))
 

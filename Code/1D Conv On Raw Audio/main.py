@@ -29,7 +29,7 @@ if __name__ == '__main__':
     if args.training:
         print("Training classifier model")
         model = md.Conv1DModel(args)
-        summary(model, (1, 8000*3))
+        #summary(model, (1, model.args.sr*3))
         train(model)
     if args.testing:
         raise NotImplementedError
