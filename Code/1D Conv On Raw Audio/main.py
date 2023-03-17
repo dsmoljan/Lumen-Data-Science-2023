@@ -6,9 +6,10 @@ from torchsummary import summary
 
 def get_args():
     parser = ArgumentParser(description='IRMAS Conv 1D Model on Raw Audio Data - PyTorch')
-    parser.add_argument('--epochs', type=int, default=25)
-    parser.add_argument('--batch_size', type=int, default=2)
-    parser.add_argument('--lr', type=float, default=.0002)
+    parser.add_argument('--epochs', type=int, default=15)
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--lr', type=float, default=.001)
+    parser.add_argument('--sr', type=int, default=44100)
     parser.add_argument('--gpu_ids', type=str, default='0')
     parser.add_argument('--training', type=bool, default=False)
     parser.add_argument('--testing', type=bool, default=False)
@@ -28,7 +29,7 @@ if __name__ == '__main__':
     if args.training:
         print("Training classifier model")
         model = md.Conv1DModel(args)
-        summary(model, (1, 16000*3))
+        summary(model, (1, 8000*3))
         train(model)
     if args.testing:
         raise NotImplementedError
