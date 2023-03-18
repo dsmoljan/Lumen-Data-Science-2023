@@ -6,6 +6,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import models
+from tqdm import tqdm
 
 import utils
 from data_utils import data_utils as du
@@ -210,22 +211,20 @@ class classifierModel(object):
         with torch.no_grad():
             # trenutno kad se koristi ova metoda natch size mora biti 1
             # i analysis window size treba biti 1s, takav je najbolji
-            for i, (img_list, targets, lengths) in enumerate(test_loader):
+            for img_list, targets, lengths in tqdm(test_loader, desc='Testing', leave=False, total=len(test_loader)):
                 current_file_predictions = np.zeros(NO_CLASSES)
                 max_val = 0
-                for imgs in img_list:
-                    imgs = imgs.to(self.device)
-                    targets = targets.to(self.device)
+                for i in range(len(img_list)):
+                    imgs = img_list[i].to(self.device)[0:lengths[i]]
+                    target = targets[i]
                     outputs = self.forward(imgs).cpu().numpy()
 
-                    if (np.max(outputs) > max_val):
-                        max_val = np.max(outputs)
+                    outputs_sum = np.sum(outputs, axis=0)
+                    max_val = np.max(outputs_sum)
+                    outputs_sum /= max_val
 
-                    current_file_predictions = np.add(outputs, current_file_predictions)
-
-                current_file_predictions /= max_val
-                outputs_list.extend(current_file_predictions)
-                targets_list.extend(targets.cpu().numpy())
+                    outputs_list.extend(np.expand_dims(outputs_sum, axis=0))
+                    targets_list.extend(target.unsqueeze(dim = 0).cpu().numpy())
 
             result = calculate_metrics(np.array(outputs_list), np.array(targets_list))
             print("Test results")
