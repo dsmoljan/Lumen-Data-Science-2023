@@ -8,10 +8,13 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import models
 
 import utils
+from data_utils import data_utils as du
 from data_utils.IRMAS_dataloader import IRMASDataset
 
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+
 
 NO_CLASSES = 11
 # kasnije eventualno izabrati bolji način određivanja thresholda
@@ -201,13 +204,13 @@ class classifierModel(object):
         targets_list = []
 
         test_set = IRMASDataset(self.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='test', audio_augmentation=False, spectogram_augmentation=False, sr=44100, return_type='image', use_window=True, window_size=3)
-        test_loader = DataLoader(test_set, batch_size=self.args.batch_size, shuffle=True, drop_last=True)
+        test_loader = DataLoader(test_set, batch_size=self.args.batch_size, shuffle=True, drop_last=True, collate_fn=du.collate_fn_windows)
 
 
         with torch.no_grad():
             # trenutno kad se koristi ova metoda natch size mora biti 1
             # i analysis window size treba biti 1s, takav je najbolji
-            for i, (img_list, targets) in enumerate(test_loader):
+            for i, (img_list, targets, lengths) in enumerate(test_loader):
                 current_file_predictions = np.zeros(NO_CLASSES)
                 max_val = 0
                 for imgs in img_list:
