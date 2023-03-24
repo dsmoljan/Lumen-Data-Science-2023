@@ -73,6 +73,7 @@ class Conv1DModel(nn.Module):
             self.optimizer.load_state_dict(ckpt['model_optimizer'])
             self.scheduler.load_state_dict(ckpt['model_scheduler'])
             self.best_val_loss = ckpt['best_val_loss']
+            print(" [*] Checkpoint loaded successfully!")
         except Exception as e:
             print(' [*] No checkpoint!')
             self.start_epoch = 0
@@ -136,7 +137,6 @@ def eval(model, epoch):
     
         
     val_loader = DataLoader(val_set, batch_size=model.args.batch_size, shuffle=False, drop_last=True, collate_fn=du.collate_fn_windows)
-    val_loss = 0
 
     with torch.no_grad():
         outputs_list = []
@@ -216,6 +216,57 @@ def eval(model, epoch):
                 'model_scheduler': model.scheduler.state_dict(),
                 'best_val_loss': model.best_val_loss
             }, model.args.checkpoint_dir + '1d_conv_raw_audio_classifier.pth')
+
+def test(model):
+    test_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='test', audio_augmentation=False, spectogram_augmentation=False, sr=model.args.sr, return_type='audio', use_window=True, window_size=3)
+     
+    test_loader = DataLoader(test_set, batch_size=model.args.batch_size, shuffle=False, drop_last=True, collate_fn=du.collate_fn_windows)
+
+    with torch.no_grad():
+        outputs_list = []
+        targets_list = []
+
+        model.eval()
+        for features, targets, lengths in tqdm(test_loader, desc='Testing', leave=False, total=len(test_loader)):
+
+            current_audio_predictions = np.zeros_like(targets.cpu().numpy(), dtype=np.float32)
+            #max_val = np.zeros(targets.shape[0], dtype=np.float32)
+
+            # iterate over the first dimension of the features tensor
+            for i in range(features.shape[0]):
+                data = features[i].to(model.device)
+                output = model.activation(model(data)).cpu().numpy()
+                # add output to current_audio_predictions at index i, but take into account only the first n lengths whenre n is given by i-th element of lengths tensor
+                current_audio_predictions[i] = np.sum(output[:lengths[i]], axis=0)
+
+            # divide current_audio_predictions by maximum value of current_audio_predictions at the corresponding index of axis zero to normalize the values
+            current_audio_predictions /= np.max(current_audio_predictions, axis=1, keepdims=True)
+            #print("current_audio_predictions: ", current_audio_predictions)
+
+            outputs_list.extend(current_audio_predictions)
+            targets_list.extend(targets.cpu().numpy())
+
+    
+        test_loss = model.criterion(torch.tensor(outputs_list, dtype=torch.float32), torch.tensor(targets_list, dtype=torch.float32))
+        result = calculate_metrics(np.array(outputs_list), np.array(targets_list))
+
+        print("Testing metrics:")
+        print("Loss: {:.3f} | "
+              "Micro f1: {:.3f} | "
+              "Micro Accuracy: {:.3f} | "
+              "Micro Precision: {:.3f} | "
+              "Micro Recall: {:.3f} | "
+              "Macro f1: {:.3f} | "
+              "Samples f1: {:.3f} | "
+              "Exact Match Accuracy: {:.3f} | ".format(test_loss,
+                                               result['micro_f1'],
+                                               result['micro_accuracy'],
+                                               result['micro_precision'],
+                                               result['micro_recall'],
+                                               result['macro_f1'],
+                                               result['samples_f1'],
+                                               result['exact_match_accuracy'])
+                                            )
 
 
 def calculate_metrics(pred, target, threshold=0.5, no_classes=NO_CLASSES):

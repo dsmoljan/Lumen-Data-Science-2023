@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
+
 import model as md
-from model import train
+from model import test, train
 from torchsummary import summary
 
 
@@ -32,7 +33,6 @@ if __name__ == '__main__':
         summary(model, (1, model.args.sr*3))
         train(model)
     if args.testing:
-        raise NotImplementedError
         print("Testing")
         model = md.Conv1DModel(args)
-        #test()
+        test(model)
