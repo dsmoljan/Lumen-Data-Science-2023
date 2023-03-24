@@ -6,6 +6,7 @@ from torchmetrics.classification import MultilabelAccuracy, MultilabelPrecision,
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import numpy as np
 from data_utils.IRMAS_dataloader import IRMASDataset
+from data_utils import data_utils as du
 import os
 from tqdm import tqdm
 import torch.nn.functional as F
@@ -96,18 +97,6 @@ class Conv1DModel(nn.Module):
         x = nn.Sequential(self.fc1, self.dropout1, self.fc2)(x)
         return x
     
-    def predict(self, x):
-        x = self.forward(x)
-        x = self.activation(x)
-        x = (x > THRESHOLD_VALUE).float()
-        return x
-    
-    def predict_proba(self, x):
-        return self.activation(self.forward(x))
-    
-    def predict_logits(self, x):
-        return self.forward(x)
-    
 
 # training loop
 def train(model):
@@ -145,10 +134,8 @@ def train(model):
 def eval(model, epoch):
     val_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='val', audio_augmentation=False, spectogram_augmentation=False, sr=model.args.sr, return_type='audio', use_window=True, window_size=3)
     
-    
-    #TODO: add collate function to pad/truncate different nnumber of windows in different files to the same size
-    
-    val_loader = DataLoader(val_set, batch_size=model.args.batch_size, shuffle=False, drop_last=True)
+        
+    val_loader = DataLoader(val_set, batch_size=model.args.batch_size, shuffle=False, drop_last=True, collate_fn=du.collate_fn_windows)
     val_loss = 0
 
     with torch.no_grad():
@@ -156,25 +143,42 @@ def eval(model, epoch):
         targets_list = []
 
         model.eval()
-        for audio_list, target in tqdm(val_loader, desc='Validation', leave=False, total=len(val_loader)):
-            print("HERE")
-            current_audio_predictions = np.zeros_like(target.cpu().numpy(), dtype=np.float32)
-            max_val = np.zeros(model.args.batch_size, dtype=np.float32)
-            for audio in audio_list:
-                data, target = audio.to(model.device), target.to(model.device)
+        for features, targets, lengths in tqdm(val_loader, desc='Validation', leave=False, total=len(val_loader)):
+
+            current_audio_predictions = np.zeros_like(targets.cpu().numpy(), dtype=np.float32)
+            #max_val = np.zeros(targets.shape[0], dtype=np.float32)
+
+            # iterate over the first dimension of the features tensor
+            for i in range(features.shape[0]):
+                data = features[i].to(model.device)
                 output = model.activation(model(data)).cpu().numpy()
 
-                # set max_value to maximum value in the batch if it is greater than the current max value
-                max_val = np.maximum(max_val, np.max(output, axis=1))
+                #print("\noutput: ", output[:lengths[i]])
 
-                current_audio_predictions += output
+                # set max_value at index i to max value across all dimensions of output
+                #max_val[i] = np.max(output[:lengths[i]])
 
-            current_audio_predictions /= max_val[:, np.newaxis]
+                #print("max_val: ", max_val)
+
+                # add output to current_audio_predictions at index i, but take into account only the first n lengths whenre n is given by i-th element of lengths tensor
+                current_audio_predictions[i] = np.sum(output[:lengths[i]], axis=0)
+
+                #print("current_audio_predictions: ", current_audio_predictions[i])
+
+                # divide current_audio_predictions by max_val to normalize the values
+                #current_audio_predictions[i] /= max_val[i]
+
+                #print("current_audio_predictions: ", current_audio_predictions[i])
+            
+            # divide current_audio_predictions by maximum value of current_audio_predictions at the corresponding index of axis zero to normalize the values
+            current_audio_predictions /= np.max(current_audio_predictions, axis=1, keepdims=True)
+            #print("current_audio_predictions: ", current_audio_predictions)
+
             outputs_list.extend(current_audio_predictions)
-            targets_list.extend(target.cpu().numpy())
+            targets_list.extend(targets.cpu().numpy())
 
     
-        val_loss = model.criterion(torch.tensor(outputs_list), torch.tensor(targets_list))
+        val_loss = model.criterion(torch.tensor(outputs_list, dtype=torch.float32), torch.tensor(targets_list, dtype=torch.float32))
         model.scheduler.step(val_loss)
         result = calculate_metrics(np.array(outputs_list), np.array(targets_list))
 

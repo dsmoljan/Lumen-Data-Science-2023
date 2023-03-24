@@ -167,7 +167,8 @@ class IRMASDataset(Dataset):
             audio_file = time_shift(audio_file)
         
         audio_windows = []
-        
+        num_intervals = 0
+
         if self.use_window:
             samples_per_interval = self.sr * self.window_size
             num_intervals = int(np.floor(len(audio_file) / samples_per_interval))
@@ -181,13 +182,13 @@ class IRMASDataset(Dataset):
         if self.return_type == 'audio':
             if self.use_window:
                 # return a list of audio windows as float tensor
-                return ([torch.from_numpy(audio_window).float().view(1, -1) for audio_window in audio_windows], target)
+                return [torch.from_numpy(audio_window).float().view(1, -1) for audio_window in audio_windows], target, num_intervals
             else:
                 return torch.from_numpy(audio_file).float().view(1, -1), target
 
 
         if self.use_window:
-            return ([self.get_spectogram(audio) for audio in audio_windows], target.float())
+            return [self.get_spectogram(audio) for audio in audio_windows], target.float(), num_intervals
         else:
             return self.get_spectogram(audio_file), target.float()
     
@@ -212,4 +213,4 @@ class IRMASDataset(Dataset):
         return spectogram_tensor.repeat(3,1,1)
 
     def __len__(self):
-        return 9
+        return len(self.examples)

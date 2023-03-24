@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# checkpoints
+checkpoints/
+
+# tensorboard results
+tensorboard_results/
