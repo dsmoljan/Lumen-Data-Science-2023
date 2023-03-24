@@ -1,18 +1,17 @@
-import torch
-from torch import nn
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import DataLoader
-from torchmetrics.classification import MultilabelAccuracy, MultilabelPrecision, MultilabelRecall, MultilabelF1Score
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-import numpy as np
-from data_utils.IRMAS_dataloader import IRMASDataset
-from data_utils import data_utils as du
-import os
-from tqdm import tqdm
-import torch.nn.functional as F
 import datetime
+import os
 
-
+import numpy as np
+import torch
+import torch.nn.functional as F
+from data_utils import data_utils as du
+from data_utils.IRMAS_dataloader import IRMASDataset
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from torch import nn
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
+from torchmetrics.classification import MultilabelAccuracy
+from tqdm import tqdm
 
 NO_CLASSES = 11
 THRESHOLD_VALUE = 0.5
@@ -72,6 +71,7 @@ class Conv1DModel(nn.Module):
             self.load_state_dict(ckpt['model_state'])
             self.optimizer = torch.optim.Adam(self.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
             self.optimizer.load_state_dict(ckpt['model_optimizer'])
+            self.scheduler.load_state_dict(ckpt['model_scheduler'])
             self.best_val_loss = ckpt['best_val_loss']
         except Exception as e:
             print(' [*] No checkpoint!')
@@ -213,6 +213,7 @@ def eval(model, epoch):
                 'epoch': epoch,
                 'model_state': model.state_dict(),
                 'model_optimizer': model.optimizer.state_dict(),
+                'model_scheduler': model.scheduler.state_dict(),
                 'best_val_loss': model.best_val_loss
             }, model.args.checkpoint_dir + '1d_conv_raw_audio_classifier.pth')
 
