@@ -67,7 +67,7 @@ class Conv1DModel(nn.Module):
 
         try:
             ckpt = torch.load(self.args.checkpoint_dir + '1d_conv_raw_audio_classifier.pth')
-            self.start_epoch = ckpt['epoch']
+            self.start_epoch = ckpt['epoch'] + 1
             self.load_state_dict(ckpt['model_state'])
             self.optimizer = torch.optim.Adam(self.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
             self.optimizer.load_state_dict(ckpt['model_optimizer'])
@@ -95,7 +95,7 @@ class Conv1DModel(nn.Module):
 
         x = F.avg_pool1d(x, x.shape[-1])
         x = torch.squeeze(x, 2)
-        x = nn.Sequential(self.fc1, self.dropout1, self.fc2)(x)
+        x = nn.Sequential(self.fc1, self.dropout1, self.relu, self.fc2)(x)
         return x
     
 

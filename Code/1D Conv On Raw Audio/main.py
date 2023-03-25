@@ -7,7 +7,7 @@ from torchsummary import summary
 
 def get_args():
     parser = ArgumentParser(description='IRMAS Conv 1D Model on Raw Audio Data - PyTorch')
-    parser.add_argument('--epochs', type=int, default=15)
+    parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--lr', type=float, default=.001)
     parser.add_argument('--sr', type=int, default=44100)
