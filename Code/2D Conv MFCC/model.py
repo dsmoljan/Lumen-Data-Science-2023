@@ -33,7 +33,25 @@ class Conv2DMFCCModel(nn.Module):
     def __init__(self, args):
         super(Conv2DMFCCModel, self).__init__()
         # TODO define the layers
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        # the model expects n_mels to be (default) 256 and n_mfcc to be (default) 40 and builds the network accordingly
+        # input of shape (batch_size, 1, self.args.n_mfcc, self.args.n_mels)
+        self.input_shape = (args.batch_size, 1, args.n_mfcc, args.n_mels)  # batch_size, 1, 40, 256
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=(4, 4))  # batch_size, 32, 37, 253
+        self.bn1 = nn.BatchNorm2d(32)  # batch_size, 32, 37, 253 
+        self.pool1 = nn.MaxPool2d(2)  # batch_size, 32, 18, 126
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=(2, 10))  # batch_size, 64, 17, 117
+        self.bn2 = nn.BatchNorm2d(64)  # batch_size, 64, 17, 117
+        self.pool2 = nn.MaxPool2d(2)  # batch_size, 64, 8, 58
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=(2, 10))  # batch_size, 128, 7, 49
+        self.bn3 = nn.BatchNorm2d(128)  # batch_size, 128, 7, 49
+        self.pool3 = nn.MaxPool2d(2)  # batch_size, 128, 3, 24
+        self.conv4 = nn.Conv2d(128, 256, kernel_size=(2, 10))  # batch_size, 256, 2, 15
+        self.bn4 = nn.BatchNorm2d(256)  # batch_size, 256, 2, 15
+        self.pool4 = nn.MaxPool2d(2)  # batch_size, 256, 1, 7
+        self.fc1 = nn.Linear(256, 64)
+        self.dropout1 = nn.Dropout(0.2)
+        self.fc2 = nn.Linear(64, NO_CLASSES)
+
         self.relu = nn.ReLU()
         self.args = args
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -45,7 +63,7 @@ class Conv2DMFCCModel(nn.Module):
 
         try:
             ckpt = torch.load(self.args.checkpoint_dir + '2d_conv_mfcc_classifier.pth')
-            self.start_epoch = ckpt['epoch']
+            self.start_epoch = ckpt['epoch'] + 1
             self.load_state_dict(ckpt['model_state'])
             self.optimizer = torch.optim.Adam(self.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
             self.optimizer.load_state_dict(ckpt['model_optimizer'])
@@ -60,14 +78,21 @@ class Conv2DMFCCModel(nn.Module):
         self.to(self.device)
 
     def forward(self, x):
-        # TODO define the forward pass
-        return torch.rand(x.shape[0], NO_CLASSES)
-        #return x
+        x = nn.Sequential(
+            self.conv1, self.bn1, self.relu, self.pool1,
+            self.conv2, self.bn2, self.relu, self.pool2,
+            self.conv3, self.bn3, self.relu, self.pool3,
+            self.conv4, self.bn4, self.relu, self.pool4
+        ) (x)
+        x = F.avg_pool2d(x, x.size()[-2:])
+        x = x.view(x.size(0), -1)
+        x = nn.Sequential(self.fc1, self.dropout1, self.relu, self.fc2) (x)
+        return x
     
 
 # training loop
 def train(model):
-    train_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels, name='train', audio_augmentation=True, mfcc_augmentation=True, sr=model.args.sr, return_type='mfcc')
+    train_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels, n_mfcc = model.args.n_mfcc, name='train', audio_augmentation=True, mfcc_augmentation=True, sr=model.args.sr, return_type='mfcc')
     train_loader = DataLoader(train_set, batch_size=model.args.batch_size, shuffle=True, drop_last=True)
 
     micro_accuracy = MultilabelAccuracy(NO_CLASSES, THRESHOLD_VALUE, average='micro').to(model.device)
@@ -98,7 +123,7 @@ def train(model):
 
 # evaluation loop
 def eval(model, epoch):
-    val_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels, name='val', sr=model.args.sr, return_type='mfcc', use_window=True, window_size=3)
+    val_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels, n_mfcc = model.args.n_mfcc, name='val', sr=model.args.sr, return_type='mfcc', use_window=True, window_size=3)
     
         
     val_loader = DataLoader(val_set, batch_size=model.args.batch_size, shuffle=False, drop_last=True, collate_fn=du.collate_fn_windows)
@@ -168,7 +193,7 @@ def eval(model, epoch):
             }, model.args.checkpoint_dir + '2d_conv_mfcc_classifier.pth')
 
 def test(model):
-    test_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels, name='test', sr=model.args.sr, return_type='mfcc', use_window=True, window_size=3)
+    test_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels, n_mfcc = model.args.n_mfcc, name='test', sr=model.args.sr, return_type='mfcc', use_window=True, window_size=3)
      
     test_loader = DataLoader(test_set, batch_size=model.args.batch_size, shuffle=False, drop_last=True, collate_fn=du.collate_fn_windows)
 

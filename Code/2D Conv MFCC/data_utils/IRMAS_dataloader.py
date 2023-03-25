@@ -234,9 +234,9 @@ class IRMASDataset(Dataset):
         mfcc_tensor = torch.from_numpy(resized_mfcc).float()
         mfcc_tensor = torch.unsqueeze(mfcc_tensor, 0)
 
-        print(mfcc_tensor.repeat(3,1,1).shape)
-
-        return mfcc_tensor.repeat(3,1,1)
+        #return mfcc_tensor.repeat(3,1,1)
+        #why would we make it 3 channels if it is effectively 1 channel?
+        return mfcc_tensor
 
     def __len__(self):
-        return 9
+        return len(self.examples)

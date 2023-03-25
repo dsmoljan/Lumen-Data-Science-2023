@@ -7,7 +7,7 @@ from torchsummary import summary
 
 def get_args():
     parser = ArgumentParser(description='IRMAS Conv 1D Model on Raw Audio Data - PyTorch')
-    parser.add_argument('--epochs', type=int, default=15)
+    parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--lr', type=float, default=.001)
     parser.add_argument('--sr', type=int, default=44100)
@@ -22,7 +22,7 @@ def get_args():
     parser.add_argument('--data_root_path', type=str, default='../../../Dataset/')
     parser.add_argument('--norm', type=str, default='instance', help='instance normalization or batch normalization')
     parser.add_argument('--weight_decay', type=float, default=0.0001)
-    parser.add_argument('--n_mfcc', type=int, default=13)
+    parser.add_argument('--n_mfcc', type=int, default=40)
     parser.add_argument('--n_mels', type=int, default=256)
     args = parser.parse_args()
     return args
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     if args.training:
         print("Training classifier model")
         model = md.Conv2DMFCCModel(args)
-        #summary(model, (3, 13, 128))
+        summary(model, (1, 40, 256))
         train(model)
     if args.testing:
         print("Testing")
