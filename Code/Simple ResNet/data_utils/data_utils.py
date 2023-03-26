@@ -30,14 +30,10 @@ def collate_fn_windows(data):
     example_shape = examples[0][0].size()
     # features shape should be [batch_size, max_window_num, 3, 128, 128] for spectograms
     # and for audio, their shape should be [batch_size, max_window_num, SR*window_size]
-    # ovo je sad ok za spektograme, ali trebaš prilagoditi kod t.d radi i za audio
-    # * operator unpacks tuple to an array of ints
     features = torch.zeros((len(data), max_len, *example_shape))
     labels = torch.stack(labels)
     lengths = torch.tensor(lengths)
 
-    # TODO: tu si stao, trebas dovrsiti
-    # mislim da je ovo napisano za 1D tenzore, trebati će ih prilagoditi za trokanalne tenzore
     for i in range(len(data)):
         j = lengths[i]
         emtpy_tensor = torch.zeros((max_len - j, *example_shape))

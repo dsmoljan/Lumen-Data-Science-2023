@@ -12,34 +12,24 @@ import utils
 from data_utils import data_utils as du
 from data_utils.IRMAS_dataloader import IRMASDataset
 
-from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-
-
 
 NO_CLASSES = 11
 # kasnije eventualno izabrati bolji način određivanja thresholda
-THRESHOLD_VALUE = 0.5
+THRESHOLD_VALUE = 0.18
 
 DATA_MEAN = -0.000404580
 DATA_STD = 0.108187131
 
 tensorboard_loc = './tensorboard_results/first_run'
 
-# ovo je multi-label classification problem!
-# i u skladu s tim treba prilagoditi metrike
-# https://learnopencv.com/multi-label-image-classification-with-pytorch-image-tagging/ ---> ovo ti je primjer implementacije!
 class classifierModel(object):
     def __init__(self, args):
         self.model = models.resnet50(pretrained=True)
         self.args = args
 
-        # veličina ulaznog tenzora u FC sloj
         num_ftrs_in = self.model.fc.in_features
 
-        # podešavamo head modela - izlazni sloj mreže
-        # točnije, resetiramo njegove težine, te podešavamo izlaz -> broj klasa
-        # ali to ne znači da se ostale težine modela ne ažuriraju, ažuriraju se!
         self.model.fc = nn.Sequential(
             nn.Dropout(p=0.2),
             nn.Linear(num_ftrs_in, NO_CLASSES))
@@ -129,19 +119,6 @@ class classifierModel(object):
     def eval(self, epoch, val_loader):
         self.model.eval()
 
-        metric_sums = {'micro/precision': 0,
-                       'micro/recall': 0,
-                       'micro/f1': 0,
-                       'macro/precision': 0,
-                       'macro/recall': 0,
-                       'macro/f1': 0,
-                       'samples/precision': 0,
-                       'samples/recall': 0,
-                       'samples/f1': 0,
-                       'precision_score': 0}
-
-        num_samples = 0
-
         outputs_list = []
         targets_list = []
 
@@ -188,43 +165,29 @@ class classifierModel(object):
     def test(self):
         self.model.eval()
 
-        metric_sums = {'micro/precision': 0,
-                       'micro/recall': 0,
-                       'micro/f1': 0,
-                       'macro/precision': 0,
-                       'macro/recall': 0,
-                       'macro/f1': 0,
-                       'samples/precision': 0,
-                       'samples/recall': 0,
-                       'samples/f1': 0,
-                       'precision_score': 0}
-
-        num_samples = 0
-
         outputs_list = []
         targets_list = []
 
         test_set = IRMASDataset(self.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='test', audio_augmentation=False, spectogram_augmentation=False, sr=44100, return_type='image', use_window=True, window_size=3)
         test_loader = DataLoader(test_set, batch_size=self.args.batch_size, shuffle=True, drop_last=True, collate_fn=du.collate_fn_windows)
 
-
         with torch.no_grad():
-            # trenutno kad se koristi ova metoda natch size mora biti 1
-            # i analysis window size treba biti 1s, takav je najbolji
-            for img_list, targets, lengths in tqdm(test_loader, desc='Testing', leave=False, total=len(test_loader)):
-                current_file_predictions = np.zeros(NO_CLASSES)
-                max_val = 0
-                for i in range(len(img_list)):
-                    imgs = img_list[i].to(self.device)[0:lengths[i]]
+            # features = list of all examples in the batch. One example = multiple audio windows
+            for features, targets, lengths in tqdm(test_loader, desc='Testing', leave=False, total=len(test_loader)):
+                for i in range(len(features)):
+                    imgs = features[i].to(self.device)[0:lengths[i]]
                     target = targets[i]
                     outputs = self.forward(imgs).cpu().numpy()
 
-                    outputs_sum = np.sum(outputs, axis=0)
-                    max_val = np.max(outputs_sum)
-                    outputs_sum /= max_val
+                    if (self.args.aggregation_function == "S2"):
+                        outputs_sum = np.sum(outputs, axis=0)
+                        max_val = np.max(outputs_sum)
+                        outputs_sum /= max_val
+                    else:
+                        outputs_sum = np.mean(outputs, axis=0)
 
                     outputs_list.extend(np.expand_dims(outputs_sum, axis=0))
-                    targets_list.extend(target.unsqueeze(dim = 0).cpu().numpy())
+                    targets_list.extend(target.unsqueeze(dim=0).cpu().numpy())
 
             result = calculate_metrics(np.array(outputs_list), np.array(targets_list))
             print("Test results")
@@ -237,7 +200,7 @@ class classifierModel(object):
                                              result['accuracy_score']))
 
 # koristi micro F1
-def calculate_metrics(pred, target, threshold=0.5):
+def calculate_metrics(pred, target, threshold=THRESHOLD_VALUE):
     pred = np.array(pred > threshold, dtype=float)
     return {'micro/precision': precision_score(y_true=target, y_pred=pred, average='micro'),
             'micro/recall': recall_score(y_true=target, y_pred=pred, average='micro'),

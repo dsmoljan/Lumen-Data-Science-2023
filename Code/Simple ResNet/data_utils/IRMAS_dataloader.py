@@ -120,7 +120,7 @@ class IRMASDataset(Dataset):
         if name == 'train':
             self.examples = pd.read_csv(os.path.join(self.data_root_path, 'datalists', 'train.csv'))
         elif name == 'test':
-            self.examples = pd.read_csv(os.path.join(self.data_root_path, 'datalists', 'test.csv'))
+            self.examples = pd.read_csv(os.path.join(self.data_root_path, 'datalists', 'val.csv'))
         elif name == 'val':
             self.examples = pd.read_csv(os.path.join(self.data_root_path, 'datalists', 'val.csv'))
         else:
@@ -159,6 +159,9 @@ class IRMASDataset(Dataset):
                 start = i * samples_per_interval
                 end = min(start + samples_per_interval, len(audio_file))
                 interval_audio = audio_file[start:end]
+                # pad the last window with zeros as it's most likely going to be shorter than other windows
+                if i == (num_intervals - 1):
+                    interval_audio = np.pad(audio_file, (0, samples_per_interval - len(interval_audio)), "constant")
                 audio_windows.append(interval_audio)
 
         if self.return_type == 'audio':
