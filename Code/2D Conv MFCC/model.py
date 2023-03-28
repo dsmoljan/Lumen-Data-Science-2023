@@ -21,15 +21,17 @@ DATA_STD = 0.108187131
 
 tensorboard_loc = './tensorboard_results/2d_conv_mfcc'
 
+
 # create a model based on 1d convolutional neural network
 class Conv2DMFCCModel(nn.Module):
     """
     Model based on 1d convolutional neural network
-    
+
     Args:
         args: arguments from the command line
-        
+
     """
+
     def __init__(self, args):
         super(Conv2DMFCCModel, self).__init__()
         # TODO define the layers
@@ -37,7 +39,7 @@ class Conv2DMFCCModel(nn.Module):
         # input of shape (batch_size, 1, self.args.n_mfcc, self.args.n_mels)
         self.input_shape = (args.batch_size, 1, args.n_mfcc, args.n_mels)  # batch_size, 1, 40, 256
         self.conv1 = nn.Conv2d(1, 32, kernel_size=(4, 4))  # batch_size, 32, 37, 253
-        self.bn1 = nn.BatchNorm2d(32)  # batch_size, 32, 37, 253 
+        self.bn1 = nn.BatchNorm2d(32)  # batch_size, 32, 37, 253
         self.pool1 = nn.MaxPool2d(2)  # batch_size, 32, 18, 126
         self.conv2 = nn.Conv2d(32, 64, kernel_size=(2, 10))  # batch_size, 64, 17, 117
         self.bn2 = nn.BatchNorm2d(64)  # batch_size, 64, 17, 117
@@ -57,14 +59,17 @@ class Conv2DMFCCModel(nn.Module):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.criterion = nn.BCELoss()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
-        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1, patience=1, verbose=True)
+        # patience was 3
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1, patience=3,
+                                                                    verbose=True)
         self.activation = nn.Sigmoid()
-        self.writer = SummaryWriter(tensorboard_loc + f"_LR_{self.args.lr}_BATCH_SIZE_{self.args.batch_size}_SR_{self.args.sr}_NMFCC_{self.args.n_mfcc}_TIME_{datetime.datetime.now()}")
+        self.writer = SummaryWriter(tensorboard_loc)
 
         try:
             ckpt = torch.load(self.args.checkpoint_dir + '2d_conv_mfcc_classifier.pth')
             self.start_epoch = ckpt['epoch'] + 1
             self.load_state_dict(ckpt['model_state'])
+            self.to(self.device)
             self.optimizer = torch.optim.Adam(self.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
             self.optimizer.load_state_dict(ckpt['model_optimizer'])
             self.scheduler.load_state_dict(ckpt['model_scheduler'])
@@ -74,7 +79,6 @@ class Conv2DMFCCModel(nn.Module):
             print(' [*] No checkpoint!')
             self.start_epoch = 0
             self.best_val_loss = np.inf
-
         self.to(self.device)
 
     def forward(self, x):
@@ -83,16 +87,18 @@ class Conv2DMFCCModel(nn.Module):
             self.conv2, self.bn2, self.relu, self.pool2,
             self.conv3, self.bn3, self.relu, self.pool3,
             self.conv4, self.bn4, self.relu, self.pool4
-        ) (x)
+        )(x)
         x = F.avg_pool2d(x, x.size()[-2:])
         x = x.view(x.size(0), -1)
-        x = nn.Sequential(self.fc1, self.dropout1, self.relu, self.fc2) (x)
+        x = nn.Sequential(self.fc1, self.dropout1, self.relu, self.fc2)(x)
         return x
-    
+
 
 # training loop
 def train(model):
-    train_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels, n_mfcc = model.args.n_mfcc, name='train', audio_augmentation=True, mfcc_augmentation=True, sr=model.args.sr, return_type='mfcc')
+    train_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels,
+                             n_mfcc=model.args.n_mfcc, name='train', audio_augmentation=True, mfcc_augmentation=True,
+                             sr=model.args.sr, return_type='mfcc')
     train_loader = DataLoader(train_set, batch_size=model.args.batch_size, shuffle=True, drop_last=True)
 
     micro_accuracy = MultilabelAccuracy(NO_CLASSES, THRESHOLD_VALUE, average='micro').to(model.device)
@@ -112,21 +118,25 @@ def train(model):
             train_loss += loss.item()
             # micro accuracy requires logit float outputs and applies sigmoid internally
             train_acc += micro_accuracy(output, target)
-        
+
         train_loss /= len(train_loader)
         train_acc /= len(train_loader)
-        model.writer.add_scalars('Train metrics', {'loss': train_loss, 'micro_accuracy': train_acc}, epoch)
+        model.writer.add_scalars('Train metrics', {'loss': train_loss, 'micro_accuracy': train_acc,
+                                                   'learning_rate': model.optimizer.param_groups[0]["lr"]}, epoch)
         print(f'\nEpoch: {epoch + 1}/{model.args.epochs}')
         print(f'Train Loss: {train_loss:.4f} | Train Micro Acc: {train_acc:.4f}')
 
         eval(model, epoch)
 
+
 # evaluation loop
 def eval(model, epoch):
-    val_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels, n_mfcc = model.args.n_mfcc, name='val', sr=model.args.sr, return_type='mfcc', use_window=True, window_size=3)
-    
-        
-    val_loader = DataLoader(val_set, batch_size=model.args.batch_size, shuffle=False, drop_last=True, collate_fn=du.collate_fn_windows)
+    val_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels,
+                           n_mfcc=model.args.n_mfcc, name='val', sr=model.args.sr, return_type='mfcc', use_window=True,
+                           window_size=3)
+
+    val_loader = DataLoader(val_set, batch_size=model.args.batch_size, shuffle=False, drop_last=True,
+                            collate_fn=du.collate_fn_windows)
 
     with torch.no_grad():
         outputs_list = []
@@ -136,7 +146,7 @@ def eval(model, epoch):
         for features, targets, lengths in tqdm(val_loader, desc='Validation', leave=False, total=len(val_loader)):
 
             current_audio_predictions = np.zeros_like(targets.cpu().numpy(), dtype=np.float32)
-            #max_val = np.zeros(targets.shape[0], dtype=np.float32)
+            # max_val = np.zeros(targets.shape[0], dtype=np.float32)
 
             # iterate over the first dimension of the features tensor
             for i in range(features.shape[0]):
@@ -145,15 +155,15 @@ def eval(model, epoch):
 
                 # add output to current_audio_predictions at index i, but take into account only the first n lengths whenre n is given by i-th element of lengths tensor
                 current_audio_predictions[i] = np.sum(output[:lengths[i]], axis=0)
-            
+
             # divide current_audio_predictions by maximum value of current_audio_predictions at the corresponding index of axis zero to normalize the values
             current_audio_predictions /= np.max(current_audio_predictions, axis=1, keepdims=True)
 
             outputs_list.extend(current_audio_predictions)
             targets_list.extend(targets.cpu().numpy())
 
-    
-        val_loss = model.criterion(torch.tensor(outputs_list, dtype=torch.float32), torch.tensor(targets_list, dtype=torch.float32))
+        val_loss = model.criterion(torch.tensor(outputs_list, dtype=torch.float32),
+                                   torch.tensor(targets_list, dtype=torch.float32))
         model.scheduler.step(val_loss)
         result = calculate_metrics(np.array(outputs_list), np.array(targets_list))
 
@@ -166,21 +176,21 @@ def eval(model, epoch):
               "Macro f1: {:.3f} | "
               "Samples f1: {:.3f} | "
               "Exact Match Accuracy: {:.3f} | ".format(val_loss,
-                                               result['micro_f1'],
-                                               result['micro_accuracy'],
-                                               result['micro_precision'],
-                                               result['micro_recall'],
-                                               result['macro_f1'],
-                                               result['samples_f1'],
-                                               result['exact_match_accuracy'])
-                                            )
+                                                       result['micro_f1'],
+                                                       result['micro_accuracy'],
+                                                       result['micro_precision'],
+                                                       result['micro_recall'],
+                                                       result['macro_f1'],
+                                                       result['samples_f1'],
+                                                       result['exact_match_accuracy'])
+              )
 
-        model.writer.add_scalars('Val Metrics', {'Loss': val_loss, 
-                                                'Micro Accuracy': result['micro_accuracy'],
-                                                'Exact Match Accuracy': result['exact_match_accuracy'],
-                                                'Micro F1': result['micro_f1'],
-                                                'Macro F1': result['macro_f1']}, epoch)
-        
+        model.writer.add_scalars('Val Metrics', {'Loss': val_loss,
+                                                 'Micro Accuracy': result['micro_accuracy'],
+                                                 'Exact Match Accuracy': result['exact_match_accuracy'],
+                                                 'Micro F1': result['micro_f1'],
+                                                 'Macro F1': result['macro_f1']}, epoch)
+
         if val_loss < model.best_val_loss:
             model.best_val_loss = val_loss
             os.makedirs(os.path.dirname(model.args.checkpoint_dir), exist_ok=True)
@@ -192,10 +202,14 @@ def eval(model, epoch):
                 'best_val_loss': model.best_val_loss
             }, model.args.checkpoint_dir + '2d_conv_mfcc_classifier.pth')
 
+
 def test(model):
-    test_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels, n_mfcc = model.args.n_mfcc, name='test', sr=model.args.sr, return_type='mfcc', use_window=True, window_size=3)
-     
-    test_loader = DataLoader(test_set, batch_size=model.args.batch_size, shuffle=False, drop_last=True, collate_fn=du.collate_fn_windows)
+    test_set = IRMASDataset(model.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=model.args.n_mels,
+                            n_mfcc=model.args.n_mfcc, name='test', sr=model.args.sr, return_type='mfcc',
+                            use_window=True, window_size=3)
+
+    test_loader = DataLoader(test_set, batch_size=model.args.batch_size, shuffle=False, drop_last=True,
+                             collate_fn=du.collate_fn_windows)
 
     with torch.no_grad():
         outputs_list = []
@@ -205,7 +219,7 @@ def test(model):
         for features, targets, lengths in tqdm(test_loader, desc='Testing', leave=False, total=len(test_loader)):
 
             current_audio_predictions = np.zeros_like(targets.cpu().numpy(), dtype=np.float32)
-            #max_val = np.zeros(targets.shape[0], dtype=np.float32)
+            # max_val = np.zeros(targets.shape[0], dtype=np.float32)
 
             # iterate over the first dimension of the features tensor
             for i in range(features.shape[0]):
@@ -216,13 +230,13 @@ def test(model):
 
             # divide current_audio_predictions by maximum value of current_audio_predictions at the corresponding index of axis zero to normalize the values
             current_audio_predictions /= np.max(current_audio_predictions, axis=1, keepdims=True)
-            #print("current_audio_predictions: ", current_audio_predictions)
+            # print("current_audio_predictions: ", current_audio_predictions)
 
             outputs_list.extend(current_audio_predictions)
             targets_list.extend(targets.cpu().numpy())
 
-    
-        test_loss = model.criterion(torch.tensor(outputs_list, dtype=torch.float32), torch.tensor(targets_list, dtype=torch.float32))
+        test_loss = model.criterion(torch.tensor(outputs_list, dtype=torch.float32),
+                                    torch.tensor(targets_list, dtype=torch.float32))
         result = calculate_metrics(np.array(outputs_list), np.array(targets_list))
 
         print("Testing metrics:")
@@ -234,21 +248,20 @@ def test(model):
               "Macro f1: {:.3f} | "
               "Samples f1: {:.3f} | "
               "Exact Match Accuracy: {:.3f} | ".format(test_loss,
-                                               result['micro_f1'],
-                                               result['micro_accuracy'],
-                                               result['micro_precision'],
-                                               result['micro_recall'],
-                                               result['macro_f1'],
-                                               result['samples_f1'],
-                                               result['exact_match_accuracy'])
-                                            )
+                                                       result['micro_f1'],
+                                                       result['micro_accuracy'],
+                                                       result['micro_precision'],
+                                                       result['micro_recall'],
+                                                       result['macro_f1'],
+                                                       result['samples_f1'],
+                                                       result['exact_match_accuracy'])
+              )
 
 
 def calculate_metrics(pred, target, threshold=0.5, no_classes=NO_CLASSES):
     pred = np.array(pred > threshold, dtype=int)
     micro_accuracy = MultilabelAccuracy(no_classes, threshold, average='micro')
     macro_accuracy = MultilabelAccuracy(no_classes, threshold, average='macro')
-
 
     return {
         'micro_accuracy': micro_accuracy(torch.from_numpy(pred), torch.from_numpy(target)),
