@@ -43,7 +43,8 @@ class classifierModel(object):
             os.makedirs(args.checkpoint_dir)
 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+        self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1, patience=3,
+                                                                    verbose=True)
 
         # ovako čudan kod za loadanje je zbog greske s optimizerom https://stackoverflow.com/questions/66091226/runtimeerror-expected-all-tensors-to-be-on-the-same-device-but-found-at-least
         try:
@@ -53,6 +54,7 @@ class classifierModel(object):
             self.model = self.model.to(self.device)
             self.optimizer = optim.Adam(self.model.parameters(), lr=args.lr, weight_decay=self.args.weight_decay)
             self.optimizer.load_state_dict(ckpt['model_optimizer'])
+            self.scheduler.load_state_dict(ckpt['model_scheduler'])
             self.best_macro_f1 = ckpt['best_macro_f1']
         except Exception as e:
             print(' [*] No checkpoint!')
@@ -80,7 +82,8 @@ class classifierModel(object):
             epoch_train_loss = 0
             self.model.train()
             count = 0
-            for i, (imgs, targets) in enumerate(train_loader):
+            # tqdm(test_loader, desc='Testing', leave=False, total=len(test_loader))
+            for imgs, targets in tqdm(train_loader, desc='Training', leave=False, total=len(train_loader)):
                 imgs = imgs.to(self.device)
                 targets = targets.to(self.device)
                 self.optimizer.zero_grad()
@@ -93,9 +96,6 @@ class classifierModel(object):
                 self.optimizer.step()
                 self.optimizer.zero_grad()
 
-                print("Epoch: (%3d) (%5d/%5d) | Crossentropy Loss:%.2e" %
-                      (epoch, i + 1, len(train_loader), loss.item()))
-
                 epoch_train_loss += loss.item()
 
                 count += 1
@@ -103,7 +103,8 @@ class classifierModel(object):
             epoch_train_loss /= count
             print("Epoch: {}", epoch)
             print("Train loss: {}", epoch_train_loss)
-            self.writer_classifier.add_scalars('Supervised Loss - Train Set', {'BCE Loss ': epoch_train_loss}, epoch)
+            self.writer_classifier.add_scalars('Train metrics', {'BCE Loss ': epoch_train_loss,
+                                                                 'Learning_rate': self.optimizer.param_groups[0]["lr"]}, epoch)
 
             if (self.args.use_validation):
                 print("Evaluating model on val set")
@@ -138,6 +139,7 @@ class classifierModel(object):
 
             val_loss /= counter
             result = calculate_metrics(np.array(outputs_list), np.array(targets_list))
+            self.scheduler.step(result['macro/f1'])
             print("Validation results")
             print("Epoch:{:2d}: "
                   "Micro f1: {:.3f} "
@@ -158,6 +160,7 @@ class classifierModel(object):
                 self.best_macro_f1 = result['macro/f1']
                 torch.save({'epoch': epoch + 1,
                             'model_state': self.model.state_dict(),
+                            'model_scheduler': self.scheduler.state_dict(),
                             'model_optimizer': self.optimizer.state_dict(),
                             'best_macro_f1': self.best_macro_f1},
                            '%s/classification_model.ckpt' % self.args.checkpoint_dir)

@@ -120,7 +120,7 @@ class IRMASDataset(Dataset):
         if name == 'train':
             self.examples = pd.read_csv(os.path.join(self.data_root_path, 'datalists', 'train.csv'))
         elif name == 'test':
-            self.examples = pd.read_csv(os.path.join(self.data_root_path, 'datalists', 'val.csv'))
+            self.examples = pd.read_csv(os.path.join(self.data_root_path, 'datalists', 'test.csv'))
         elif name == 'val':
             self.examples = pd.read_csv(os.path.join(self.data_root_path, 'datalists', 'val.csv'))
         else:
