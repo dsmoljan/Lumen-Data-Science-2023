@@ -5,13 +5,10 @@ import pandas as pd
 import numpy as np
 import torch
 import librosa as lr
-import random
-import scipy
+
 
 from torch.utils.data import Dataset
-from PIL import Image
 import random
-from torchvision.transforms import Resize, CenterCrop, ToTensor, Normalize, Compose
 from skimage.transform import resize
 
 NO_CLASSES = 11
