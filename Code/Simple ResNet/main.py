@@ -21,6 +21,7 @@ def get_args():
     parser.add_argument('--data_root_path', type=str, default='../../../Dataset/')
     parser.add_argument('--norm', type=str, default='instance', help='instance normalization or batch normalization')
     parser.add_argument('--weight_decay', type=float, default=0.0001)
+    parser.add_argument('--aggregation_function', type=str, default="S2")
     args = parser.parse_args()
     return args
 
