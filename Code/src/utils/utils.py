@@ -4,12 +4,13 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import librosa as lr
 import numpy as np
-
+from torchmetrics.classification import MultilabelAccuracy
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
 genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
 
-data_root_dir = "../../../Dataset"
-datalists_dir = "../../../Dataset/datalists"
+data_root_dir = "../../../../Dataset"
+datalists_dir = "../../../../Dataset/datalists"
 
 train_prefix = "IRMAS_Training_Data"
 test_prefix = "IRMAS_Validation_Data"
@@ -18,6 +19,8 @@ class_mappings = {"cel": 0, "cla": 1, "flu": 2, "gac": 3, "gel": 4, "org": 5, "p
                   "voi": 10}
 
 VAL_PERCENTAGE = 0.3
+
+NO_CLASSES = 11
 
 def walk_directory_train_data(root_dir):
     file_info = []
@@ -126,3 +129,47 @@ def calculate_mean_and_std_deviation(target_sr, split):
     print('Number of records:', count)
 
     print(f"Split: {split}; Mean: {mean_sum:.9f}, std. deviation: {std_dev_sum:.9f}")
+
+def calculate_metrics(pred, target, threshold=0.5, no_classes=NO_CLASSES):
+    pred = np.array(pred > threshold, dtype=int)
+    micro_accuracy = MultilabelAccuracy(no_classes, threshold, average='micro')
+    macro_accuracy = MultilabelAccuracy(no_classes, threshold, average='macro')
+
+    return {
+        'micro_accuracy': micro_accuracy(torch.from_numpy(pred), torch.from_numpy(target)),
+        'macro_accuracy': macro_accuracy(torch.from_numpy(pred), torch.from_numpy(target)),
+        'exact_match_accuracy': accuracy_score(target, pred),
+        'micro_precision': precision_score(target, pred, average='micro', zero_division=0),
+        'macro_precision': precision_score(target, pred, average='macro', zero_division=0),
+        'macro_recall': recall_score(target, pred, average='macro', zero_division=0),
+        'macro_f1': f1_score(target, pred, average='macro', zero_division=0),
+        'micro_recall': recall_score(target, pred, average='micro', zero_division=0),
+        'micro_f1': f1_score(target, pred, average='micro', zero_division=0),
+        'samples_precision': precision_score(target, pred, average='samples', zero_division=0),
+        'samples_recall': recall_score(target, pred, average='samples', zero_division=0),
+        'samples_f1': f1_score(target, pred, average='samples', zero_division=0),
+    }
+
+import torch
+
+def print_networks(nets, names):
+    print('------------Number of Parameters---------------')
+    i=0
+    for net in nets:
+        num_params = 0
+        for param in net.parameters():
+            num_params += param.numel()
+        print('[Network %s] Total number of parameters : %.3f M' % (names[i], num_params / 1e6))
+        i=i+1
+    print('-----------------------------------------------')
+
+# To save the checkpoint
+def save_checkpoint(state, save_path):
+    torch.save(state, save_path)
+
+
+# To load the checkpoint
+def load_checkpoint(ckpt_path, map_location='cpu'):
+    ckpt = torch.load(ckpt_path, map_location=map_location)
+    print(' [*] Loading checkpoint from %s succeed!' % ckpt_path)
+    return ckpt

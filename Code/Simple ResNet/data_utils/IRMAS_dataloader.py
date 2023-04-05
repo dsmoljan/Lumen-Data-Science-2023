@@ -164,9 +164,16 @@ class IRMASDataset(Dataset):
         if self.return_type == 'audio':
             if self.use_window:
                 # return a list of audio windows as float tensor
-                return [torch.from_numpy(audio_window).float().view(1, -1) for audio_window in audio_windows], target, num_intervals
+                return [torch.from_numpy(audio_window).float().view(1, -1) for audio_window in
+                        audio_windows], target, num_intervals
             else:
-                return torch.from_numpy(audio_file).float(), target
+                return torch.from_numpy(audio_file).float().view(1, -1), target
+
+        elif self.return_type == 'mfcc':
+            if self.use_window:
+                return [self.get_mfcc(audio) for audio in audio_windows], target, num_intervals
+            else:
+                return self.get_mfcc(audio_file), target
 
         if self.use_window:
             return [self.get_spectogram(audio) for audio in audio_windows], target.float(), num_intervals

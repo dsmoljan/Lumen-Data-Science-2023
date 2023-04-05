@@ -96,17 +96,19 @@ def get_spectogram_transformation(height, width):
     return Compose(transform_list)
 
 class IRMASDataset(Dataset):
-    def __init__(self, data_root_path, data_mean, data_std, n_mels=128, spec_height=None, name='train', audio_augmentation=False,
-                 spectogram_augmentation=False, sr=44100, return_type="audio", audio_length=None, use_window=False, window_size=None):
+    def __init__(self, data_root_path, data_mean, data_std, n_mels=128, n_mfcc=13, spec_height=None, name='train', audio_augmentation=False,
+                 spectogram_augmentation=False, mfcc_augmentation=False, sr=44100, return_type="audio", audio_length=None, use_window=False, window_size=None):
         super(IRMASDataset, self).__init__()
         self.data_root_path = data_root_path
         self.audio_augmentation = audio_augmentation
         self.spectogram_augmentation = spectogram_augmentation
+        self.mfcc_augmentation = mfcc_augmentation
         self.name = name
         self.sr = sr
         self.data_mean = data_mean
         self.data_std = data_std
         self.n_mels = n_mels
+        self.n_mfcc = n_mfcc
         self.spec_height = spec_height
         self.spec_width = self.n_mels
         self.return_type = return_type
@@ -115,10 +117,13 @@ class IRMASDataset(Dataset):
         self.window_size = window_size
 
         if self.spec_height == None:
-            self.spec_height = self.n_mels
+            if self.return_type == "spectogram":
+                self.spec_height = self.n_mels
+            elif self.return_type == "mfcc":
+                self.spec_height = self.n_mfcc
 
         assert name in ('train', 'test', 'val')
-        assert return_type in ('audio', 'image')
+        assert return_type in ('audio', 'image', 'mfcc')
 
         if name == 'train':
             self.examples = pd.read_csv(os.path.join(self.data_root_path, 'datalists', 'train.csv'))
@@ -186,6 +191,12 @@ class IRMASDataset(Dataset):
             else:
                 return torch.from_numpy(audio_file).float().view(1, -1), target
 
+        elif self.return_type == 'mfcc':
+            if self.use_window:
+                return [self.get_mfcc(audio) for audio in audio_windows], target, num_intervals
+            else:
+                return self.get_mfcc(audio_file), target
+
 
         if self.use_window:
             return [self.get_spectogram(audio) for audio in audio_windows], target.float(), num_intervals
@@ -211,6 +222,23 @@ class IRMASDataset(Dataset):
         # ovaj repeat je samo da dobijemo rgb sliku iz 1-kanalnog spektograma
         # pa ponavljamo samo 1 kanal 3x
         return spectogram_tensor.repeat(3,1,1)
+
+    def get_mfcc(self, audio_file):
+        mfcc = lr.feature.mfcc(y=audio_file, sr=self.sr, n_mfcc=self.n_mfcc)
+
+        if self.mfcc_augmentation:
+            mfcc = freq_mask(mfcc, int(mfcc.shape[0] / 10), 2)
+            mfcc = time_mask(mfcc, int(mfcc.shape[1] / 10), 2)
+
+        # TODO do we want to resize mfcc? initial width is 259 (i don't know why), resized it is 256 (default n_mels)
+        resized_mfcc = resize(mfcc, (self.spec_height, self.spec_width))
+
+        mfcc_tensor = torch.from_numpy(resized_mfcc).float()
+        mfcc_tensor = torch.unsqueeze(mfcc_tensor, 0)
+
+        #return mfcc_tensor.repeat(3,1,1)
+        #why would we make it 3 channels if it is effectively 1 channel?
+        return mfcc_tensor
 
     def __len__(self):
         return len(self.examples)
