@@ -1,5 +1,7 @@
 from argparse import ArgumentParser
 
+import torch
+
 from models.cnn_audio_model import Conv1DModel
 from src.models.cnn_mfcc_model import Conv2DMFCCModel
 from src.models.resnet_spectogram_model import ResnetSpectogramModel
