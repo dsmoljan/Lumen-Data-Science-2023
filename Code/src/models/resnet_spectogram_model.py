@@ -21,7 +21,7 @@ THRESHOLD_VALUE = 0.18
 DATA_MEAN = -0.000404580
 DATA_STD = 0.108187131
 
-tensorboard_loc = './tensorboard_results/first_run'
+tensorboard_loc = './tensorboard_results/resnet_spectograms'
 
 
 class ResnetSpectogramModel(object):
@@ -44,6 +44,7 @@ class ResnetSpectogramModel(object):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1, patience=3,
                                                                     verbose=True)
+        self.writer = SummaryWriter(tensorboard_loc)
 
         # ovako čudan kod za loadanje je zbog greske s optimizerom https://stackoverflow.com/questions/66091226/runtimeerror-expected-all-tensors-to-be-on-the-same-device-but-found-at-least
         try:
@@ -62,7 +63,6 @@ class ResnetSpectogramModel(object):
 
         self.model = self.model.to(self.device)
         self.activation = nn.Sigmoid()
-        self.writer_classifier = SummaryWriter(tensorboard_loc + '_classifier')
 
     def forward(self, x):
         return self.activation(self.model(x))
@@ -101,11 +101,12 @@ class ResnetSpectogramModel(object):
                 count += 1
 
             epoch_train_loss /= count
-            print("Epoch: {}", epoch)
-            print("Train loss: {}", epoch_train_loss)
-            self.writer_classifier.add_scalars('Train metrics', {'BCE Loss ': epoch_train_loss,
-                                                                 'Learning_rate': self.optimizer.param_groups[0]["lr"]},
+            self.writer.add_scalars('Train metrics', {'loss': epoch_train_loss,
+                                                                 'learning_rate': self.optimizer.param_groups[0]["lr"]},
                                                epoch)
+            print(f"\nEpoch: {epoch}")
+            print(f"Train loss: {epoch_train_loss}")
+
 
             if (self.args.use_validation):
                 print("Evaluating model on val set")
@@ -127,7 +128,7 @@ class ResnetSpectogramModel(object):
         with torch.no_grad():
             val_loss = 0
             counter = 0
-            for i, (imgs, targets) in enumerate(val_loader):
+            for imgs, targets in tqdm(val_loader, desc="Validation", leave=False, total=len(val_loader)):
                 imgs = imgs.to(self.device)
                 targets = targets.to(self.device)
 
@@ -152,8 +153,8 @@ class ResnetSpectogramModel(object):
                                              result['samples/f1'],
                                              result['accuracy_score']))
 
-            self.writer_classifier.add_scalars('Val Metrics',
-                                               {'CE Loss': val_loss, 'Accuracy': result['accuracy_score'],
+            self.writer.add_scalars('Val Metrics',
+                                               {'Loss': val_loss, 'Accuracy': result['accuracy_score'],
                                                 'Micro F1': result['micro/f1'],
                                                 'Macro F1': result['macro/f1'],
                                                 'Samples F1': result['samples/f1']}, epoch)
