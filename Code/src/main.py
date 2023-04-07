@@ -1,6 +1,8 @@
 from argparse import ArgumentParser
 
-from src.models.cnn_audio_model import Conv1DModel
+import torch
+
+from models.cnn_audio_model import Conv1DModel
 from src.models.cnn_mfcc_model import Conv2DMFCCModel
 from src.models.resnet_spectogram_model import ResnetSpectogramModel
 
@@ -9,17 +11,17 @@ from src.models.resnet_spectogram_model import ResnetSpectogramModel
 def get_args():
     parser = ArgumentParser(description='IRMAS ResNet model PyTorch')
     parser.add_argument('--epochs', type=int, default=25)
-    parser.add_argument('--batch_size', type=int, default=8)
+    parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--lr', type=float, default=.0002)
     parser.add_argument('--sr', type=int, default=44100)
     parser.add_argument('--gpu_ids', type=str, default='0')
     parser.add_argument('--crop_height', type=int, default=20)
     parser.add_argument('--crop_width', type=int, default=40)
-    parser.add_argument('--training', type=bool, default=True)
+    parser.add_argument('--training', type=bool, default=False)
     parser.add_argument('--testing', type=bool, default=False)
     parser.add_argument('--validation', type=bool, default=False)
     parser.add_argument('--use_validation', type=bool, default=True)
-    parser.add_argument('--model', type=str, default='resnet_spectograms')
+    parser.add_argument('--model', type=str, default='1d_conv_audio')
     parser.add_argument('--results_dir', type=str, default='./results')
     parser.add_argument('--validation_dir', type=str, default='./val_results')
     parser.add_argument('--checkpoint_dir', type=str, default='./checkpoints/')
