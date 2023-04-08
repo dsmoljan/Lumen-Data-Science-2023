@@ -16,7 +16,7 @@ from src.utils.utils import calculate_metrics
 
 NO_CLASSES = 11
 # kasnije eventualno izabrati bolji način određivanja thresholda
-THRESHOLD_VALUE = 0.18
+THRESHOLD_VALUE = 0.5
 
 DATA_MEAN = -0.000404580
 DATA_STD = 0.108187131
