@@ -20,17 +20,16 @@ from src.utils.utils import calculate_metrics
 
 NO_CLASSES = 11
 THRESHOLD_VALUE = 0.5
-
+LR = 0.0002
 class AudioLitModule(pl.LightningModule):
-    def __init__(self, net: nn.Module, args):
-        super.__init__()
+    def __init__(self, net: nn.Module):
+        super().__init__()
 
         self.net = net
 
         self.criterion = nn.BCELoss()
         self.activation = nn.Sigmoid()
 
-        self.args = args
         self.train_macro_acc = MultilabelAccuracy(NO_CLASSES, THRESHOLD_VALUE, average='macro')
         self.train_loss = MeanMetric()
         self.val_loss = MeanMetric()
@@ -50,27 +49,27 @@ class AudioLitModule(pl.LightningModule):
         inputs, targets = batch
         logits = self.forward(inputs)
         loss = self.criterion(logits, targets)
-        preds = torch.argmax(logits, dim = 1)
-        return preds, targets, loss
+        #preds = torch.argmax(logits, dim = 1)
+        return logits, targets, loss
 
     def training_step(self, batch: Any, batch_idx: int):
-        preds, targets, loss = self.model_step(batch)
+        logits, targets, loss = self.model_step(batch)
 
         self.train_loss(loss)
-        self.train_acc(preds, targets)
+        self.train_macro_acc(logits, targets)
         self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
         # per Ligthning module requirements, we return loss so Lightning can perform backprop and optimizer steps
         return loss
 
     def validation_step(self, batch: Any, batch_idx: int):
-        preds, targets, loss = self.model_step(batch)
+        logits, targets, loss = self.model_step(batch)
 
         self.val_loss(loss)
-        result_dict = calculate_metrics(np.array(preds), np.array(targets))
+        self.log("val_loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=True)
+        result_dict = calculate_metrics(logits.cpu().numpy(), targets.cpu().numpy())
         # Lightning should automatically aggregate and calculate mean of every metric in the dict
         self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True)
         self.val_macro_f1.update(result_dict["macro_f1"])
-        return result_dict
 
     def on_validation_end(self):
         val_epoch_macro_f1 = self.val_macro_f1.compute()
@@ -78,7 +77,15 @@ class AudioLitModule(pl.LightningModule):
 
 
     def test_step(self, batch: Any, batch_idx: int):
-        preds, targets, loss = self.model_step(batch)
+        logits, targets, loss = self.model_step(batch)
+
+        # TODO: dodaj agregaciju!
+        # if (self.args.aggregation_function == "S2"):
+        #     outputs_sum = np.sum(preds, axis=0)
+        #     max_val = np.max(outputs_sum)
+        #     outputs_sum /= max_val
+        # else:
+        #     outputs_sum = np.mean(preds, axis=0)
 
         self.test_loss(loss)
         result_dict = calculate_metrics(np.array(preds), np.array(targets))
@@ -87,14 +94,15 @@ class AudioLitModule(pl.LightningModule):
         self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.args.lr)
-        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=0.1, patience=1, verbose=True)
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=LR)
+        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=1, verbose=True)
         return {
                 "optimizer": optimizer,
                 "lr_scheduler": {
                     "scheduler": lr_scheduler,
-                    "monitor": "val/loss", # TODO -> ovo prebaciti u macro_f1
+                    "monitor": "val_loss", # TODO -> ovo prebaciti u macro_f1
                     "interval": "epoch",
+                    "strict": False,
                     "frequency": 1,
                 },
             }
