@@ -2,9 +2,12 @@ import os
 import ast
 
 import pandas as pd
+import pyrootutils
 from torch.utils.data import Dataset
 
 from src.data_utils.data_utils import *
+
+pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 NO_CLASSES = 11
 

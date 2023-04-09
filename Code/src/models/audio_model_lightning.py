@@ -1,6 +1,7 @@
 from typing import Any
 
 import numpy as np
+import pyrootutils
 import torch
 from torchmetrics import MaxMetric, MeanMetric
 
@@ -10,6 +11,8 @@ from torchmetrics.classification import MultilabelAccuracy
 import pytorch_lightning as pl
 
 from src.utils.utils import calculate_metrics
+
+pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 NO_CLASSES = 11
 THRESHOLD_VALUE = 0.5
@@ -60,10 +63,10 @@ class AudioLitModule(pl.LightningModule):
         logits, targets, loss = self.model_step(batch)
 
         self.val_loss(loss)
-        self.log("val_loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=False)
+        self.log("val_loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         result_dict = calculate_metrics(logits.cpu().numpy(), targets.cpu().numpy())
         # Lightning should automatically aggregate and calculate mean of every metric in the dict
-        self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True)
+        self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.val_macro_f1.update(result_dict["macro_f1"])
 
     def on_validation_end(self):
