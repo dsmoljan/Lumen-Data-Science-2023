@@ -107,4 +107,4 @@ class IRMASDataset(Dataset):
             return get_spectogram(audio_file, sr=self.sr, n_mels=self.n_mels, spec_height=self.spec_height, spec_width=self.spec_width, augmentation=self.spectogram_augmentation), target.float()
 
     def __len__(self):
-        return len(self.examples)
+        return 50

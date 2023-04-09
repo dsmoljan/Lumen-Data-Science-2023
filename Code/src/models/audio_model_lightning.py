@@ -1,18 +1,11 @@
-import os
 from typing import Any
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from torchmetrics import MaxMetric, MeanMetric
 
-from src.data_utils import data_utils as du
-from src.data_utils.IRMAS_dataloader import IRMASDataset
 from torch import nn
-from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.classification import MultilabelAccuracy
-from tqdm import tqdm
 
 import pytorch_lightning as pl
 
@@ -21,6 +14,8 @@ from src.utils.utils import calculate_metrics
 NO_CLASSES = 11
 THRESHOLD_VALUE = 0.5
 LR = 0.0002
+AGGREGATION_FUNCTION="S2"
+
 class AudioLitModule(pl.LightningModule):
     def __init__(self, net: nn.Module):
         super().__init__()
@@ -65,7 +60,7 @@ class AudioLitModule(pl.LightningModule):
         logits, targets, loss = self.model_step(batch)
 
         self.val_loss(loss)
-        self.log("val_loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("val_loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=False)
         result_dict = calculate_metrics(logits.cpu().numpy(), targets.cpu().numpy())
         # Lightning should automatically aggregate and calculate mean of every metric in the dict
         self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True)
@@ -77,21 +72,24 @@ class AudioLitModule(pl.LightningModule):
 
 
     def test_step(self, batch: Any, batch_idx: int):
-        logits, targets, loss = self.model_step(batch)
+        features, targets, lengths = batch
+        for i in range (len(features)):
+            examples = features[i][0:lengths[i]]
+            target = targets[i]
+            logits = self.forward(examples)
 
-        # TODO: dodaj agregaciju!
-        # if (self.args.aggregation_function == "S2"):
-        #     outputs_sum = np.sum(preds, axis=0)
-        #     max_val = np.max(outputs_sum)
-        #     outputs_sum /= max_val
-        # else:
-        #     outputs_sum = np.mean(preds, axis=0)
+            if (AGGREGATION_FUNCTION == "S2"):
+                outputs_sum = np.sum(logits.cpu().numpy(), axis=0)
+                max_val = np.max(outputs_sum)
+                outputs_sum /= max_val
+            else:
+                outputs_sum = np.mean(logits, axis=0)
 
-        self.test_loss(loss)
-        result_dict = calculate_metrics(np.array(preds), np.array(targets))
-        self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
-        # Lightning should automatically aggregate and calculate mean of every metric in the dict
-        self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True)
+            #self.test_loss(loss)
+            result_dict = calculate_metrics(np.expand_dims(np.array(outputs_sum), axis=0), np.array(target.unsqueeze(dim=0).cpu().numpy()))
+            #self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
+            # Lightning should automatically aggregate and calculate mean of every metric in the dict
+            self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.net.parameters(), lr=LR)
