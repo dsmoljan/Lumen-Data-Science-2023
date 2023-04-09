@@ -1,0 +1,18 @@
+_target_: src.models.audio_model_lightning.AudioLitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.0002
+  weight_decay: 0.00001
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.1
+  patience: 10
+
+net:
+  _target_: src.models.components.cnn_spectogram_net.CNNSpectogramNet
+  no_classes: ${data_common.no_classes}

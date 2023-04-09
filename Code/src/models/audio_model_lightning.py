@@ -20,8 +20,15 @@ LR = 0.0002
 AGGREGATION_FUNCTION="S2"
 
 class AudioLitModule(pl.LightningModule):
-    def __init__(self, net: nn.Module):
+    def __init__(self, net: nn.Module,
+                 optimizer: torch.optim.Optimizer,
+                 scheduler: torch.optim.lr_scheduler,
+                 ):
         super().__init__()
+
+        # this line allows to access init params with 'self.hparams' attribute
+        # also ensures init params will be stored in ckpt
+        self.save_hyperparameters(logger=False)
 
         self.net = net
 
@@ -95,18 +102,21 @@ class AudioLitModule(pl.LightningModule):
             self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.net.parameters(), lr=LR)
-        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=1, verbose=True)
-        return {
-                "optimizer": optimizer,
-                "lr_scheduler": {
-                    "scheduler": lr_scheduler,
-                    "monitor": "val_loss", # TODO -> ovo prebaciti u macro_f1
-                    "interval": "epoch",
-                    "strict": False,
-                    "frequency": 1,
-                },
-            }
+        optimizer = self.hparams.optimizer(params=self.parameters())
+        if self.hparams.scheduler is not None:
+            scheduler = self.hparams.scheduler(optimizer=optimizer)
+        # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=1, verbose=True)
+            return {
+                    "optimizer": optimizer,
+                    "lr_scheduler": {
+                        "scheduler": scheduler,
+                        "monitor": "val_loss", # TODO -> ovo prebaciti u macro_f1
+                        "interval": "epoch",
+                        "strict": False,
+                        "frequency": 1,
+                    },
+                }
+        return {"optimizer": optimizer}
 
 
 
