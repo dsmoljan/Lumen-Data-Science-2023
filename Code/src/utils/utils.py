@@ -1,4 +1,3 @@
-import torch
 import os
 from sklearn.model_selection import train_test_split
 import pandas as pd
@@ -6,6 +5,11 @@ import librosa as lr
 import numpy as np
 from torchmetrics.classification import MultilabelAccuracy
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+
+import logging
+
+from pytorch_lightning.utilities import rank_zero_only
+
 
 genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
 
@@ -173,3 +177,16 @@ def load_checkpoint(ckpt_path, map_location='cpu'):
     ckpt = torch.load(ckpt_path, map_location=map_location)
     print(' [*] Loading checkpoint from %s succeed!' % ckpt_path)
     return ckpt
+
+def get_pylogger(name=__name__) -> logging.Logger:
+    """Initializes multi-GPU-friendly python command line logger."""
+
+    logger = logging.getLogger(name)
+
+    # this ensures all logging levels get marked with the rank zero decorator
+    # otherwise logs would get multiplied for each GPU process in multi-GPU setup
+    logging_levels = ("debug", "info", "warning", "error", "exception", "fatal", "critical")
+    for level in logging_levels:
+        setattr(logger, level, rank_zero_only(getattr(logger, level)))
+
+    return logger
