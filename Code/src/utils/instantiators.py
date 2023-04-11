@@ -5,9 +5,9 @@ from omegaconf import DictConfig
 from pytorch_lightning import Callback
 from pytorch_lightning.loggers import Logger
 
-from src.utils import pylogger
+from src.utils import utils
 
-log = pylogger.get_pylogger(__name__)
+log = utils.get_pylogger(__name__)
 
 
 def instantiate_callbacks(callbacks_cfg: DictConfig) -> List[Callback]:
