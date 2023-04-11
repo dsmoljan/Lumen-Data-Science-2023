@@ -35,11 +35,11 @@ def train(cfg: DictConfig):
     if cfg.get("seed"):
         pl.seed_everything(cfg.seed, workers=True)
 
-    log.info(f"Instantiating train dataloader <{cfg.train_data._target_}>")
-    train_dataloader: DataLoader = hydra.utils.instantiate(cfg.train_data)
+    log.info(f"Instantiating train dataloader <{cfg.data.train_data._target_}>")
+    train_dataloader: DataLoader = hydra.utils.instantiate(cfg.data.train_data)
 
-    log.info(f"Instantiating val dataloader <{cfg.val_data._target_}>")
-    val_dataloader: DataLoader = hydra.utils.instantiate(cfg.val_data)
+    log.info(f"Instantiating val dataloader <{cfg.data.val_data._target_}>")
+    val_dataloader: DataLoader = hydra.utils.instantiate(cfg.data.val_data)
 
     log.info(f"Instantiating model <{cfg.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(cfg.model)
@@ -79,26 +79,27 @@ def train(cfg: DictConfig):
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="train.yaml")
 def main(cfg: DictConfig):
-    checkpoint_callback = ModelCheckpoint(
-        monitor="val_loss",
-        mode="min",
-        filename="resnet_spectogram_model_{epoch:02d}_{val_loss:.3f}",
-        save_top_k=2,
-        save_last=True,  # always save the last checkpoint
-    )
-
-    wandb_logger = WandbLogger(project="lumen-test")
-    trainer = pl.Trainer(max_epochs=20, check_val_every_n_epoch=1, callbacks=[checkpoint_callback], logger=wandb_logger)
-    train_set = IRMASDataset(data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='train',
-                             audio_augmentation=True, spectogram_augmentation=True, sr=44100, return_type='spectogram')
-    val_set = IRMASDataset(data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='val',
-                           audio_augmentation=False, spectogram_augmentation=False, sr=44100, return_type='spectogram')
-    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True)
-    val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, drop_last=True)
-
-    base_model = CNNSpectogramNet()
-    model = AudioLitModule(net=base_model)
-    trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
+    # checkpoint_callback = ModelCheckpoint(
+    #     monitor="val_loss",
+    #     mode="min",
+    #     filename="resnet_spectogram_model_{epoch:02d}_{val_loss:.3f}",
+    #     save_top_k=2,
+    #     save_last=True,  # always save the last checkpoint
+    # )
+    #
+    # wandb_logger = WandbLogger(project="lumen-test")
+    # trainer = pl.Trainer(max_epochs=20, check_val_every_n_epoch=1, callbacks=[checkpoint_callback], logger=wandb_logger)
+    # train_set = IRMASDataset(data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='train',
+    #                          audio_augmentation=True, spectogram_augmentation=True, sr=44100, return_type='spectogram')
+    # val_set = IRMASDataset(data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='val',
+    #                        audio_augmentation=False, spectogram_augmentation=False, sr=44100, return_type='spectogram')
+    # train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, drop_last=True)
+    # val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=True, drop_last=True)
+    #
+    # base_model = CNNSpectogramNet()
+    # model = AudioLitModule(net=base_model)
+    # trainer.fit(model, train_dataloaders=train_loader, val_dataloaders=val_loader)
+    train(cfg)
 
 
 if __name__ == "__main__":

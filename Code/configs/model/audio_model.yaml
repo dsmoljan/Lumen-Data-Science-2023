@@ -15,4 +15,4 @@ scheduler:
 
 net:
   _target_: src.models.components.cnn_spectogram_net.CNNSpectogramNet
-  no_classes: ${data_common.no_classes}
+  no_classes: ${data.general.no_classes}
