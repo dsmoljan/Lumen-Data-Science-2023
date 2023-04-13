@@ -1,4 +1,21 @@
-train_data:
+train_dataloader:
+  batch_size: 8
+  shuffle: True
+  drop_last: True
+
+val_dataloader:
+  batch_size: 8
+  shuffle: True
+  drop_last: True
+
+test_dataloader:
+  _target_: torch.utils.data.DataLoader
+  dataset: ${data.test_dataset}
+  batch_size: 8
+  shuffle: True
+  drop_last: True
+
+train_dataset:
   _target_: src.data_utils.IRMAS_dataloader.IRMASDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}
@@ -11,7 +28,7 @@ train_data:
   return_type: spectogram
   use_window: False
 
-val_data:
+val_dataset:
   _target_: src.data_utils.IRMAS_dataloader.IRMASDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}
@@ -24,7 +41,7 @@ val_data:
   return_type: spectogram
   use_window: False
 
-test_data:
+test_dataset:
   _target_: src.data_utils.IRMAS_dataloader.IRMASDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}

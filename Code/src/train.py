@@ -35,11 +35,14 @@ def train(cfg: DictConfig):
     if cfg.get("seed"):
         pl.seed_everything(cfg.seed, workers=True)
 
-    log.info(f"Instantiating train dataloader <{cfg.data.train_data._target_}>")
-    train_dataloader: DataLoader = hydra.utils.instantiate(cfg.data.train_data)
+    log.info(f"Instantiating train dataset <{cfg.data.train_dataset._target_}>")
+    train_dataset: IRMASDataset = hydra.utils.instantiate(cfg.data.train_dataset)
 
-    log.info(f"Instantiating val dataloader <{cfg.data.val_data._target_}>")
-    val_dataloader: DataLoader = hydra.utils.instantiate(cfg.data.val_data)
+    log.info(f"Instantiating val dataset <{cfg.data.val_dataset._target_}>")
+    val_dataset : IRMASDataset = hydra.utils.instantiate(cfg.data.val_dataset)
+
+    train_dataloader : DataLoader = DataLoader(train_dataset, batch_size=cfg.data.train_dataloader.batch_size, shuffle=True, drop_last=True)
+    val_dataloader: DataLoader = DataLoader(val_dataset, batch_size=cfg.data.val_dataloader.batch_size, shuffle=False, drop_last=True)
 
     log.info(f"Instantiating model <{cfg.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(cfg.model)
