@@ -1,3 +1,6 @@
+defaults:
+  - augmentations.yaml
+
 train_dataloader:
   batch_size: 8
   shuffle: True
@@ -22,11 +25,10 @@ train_dataset:
   data_std: ${data.general.data_std}
   n_mels: 256
   name: train
-  audio_augmentation: True
-  spectogram_augmentation: True
   sr: 44100
   return_type: spectogram
   use_window: False
+  augmentation_config: ${data.augmentations}
 
 val_dataset:
   _target_: src.data_utils.IRMAS_dataloader.IRMASDataset
@@ -35,11 +37,10 @@ val_dataset:
   data_std: ${data.general.data_std}
   n_mels: 256
   name: val
-  audio_augmentation: True
-  spectogram_augmentation: True
   sr: 44100
   return_type: spectogram
   use_window: False
+  augmentation_config: ${data.augmentations}
 
 test_dataset:
   _target_: src.data_utils.IRMAS_dataloader.IRMASDataset
@@ -48,12 +49,11 @@ test_dataset:
   data_std: ${data.general.data_std}
   n_mels: 256
   name: test
-  audio_augmentation: False
-  spectogram_augmentation: False
   sr: 44100
   return_type: spectogram
   use_window: True
   window_size: 3
+  augmentation_config: ${data.augmentations}
 
 general:
   data_mean: -0.000404580

@@ -89,7 +89,7 @@ def spectogram_to_db(spectogram: numpy.ndarray) -> numpy.ndarray:
     return lr.power_to_db(spectogram, ref=np.max)
 
 
-def freq_mask(spec: numpy.ndarray, F=None, num_masks=1) -> numpy.ndarray:
+def freq_mask(spec: numpy.ndarray, F_per=10, num_masks=1) -> numpy.ndarray:
     """
     Implementation of the spectogram frequency masking augmentation technique, introduced in
     https://ai.googleblog.com/2019/04/specaugment-new-data-augmentation.html. Random parts of the spectogram
@@ -98,7 +98,7 @@ def freq_mask(spec: numpy.ndarray, F=None, num_masks=1) -> numpy.ndarray:
     Implementation adapted from: https://www.kaggle.com/code/yash612/simple-audio-augmentation
 
     :param spec: spectogram to frequency maks
-    :param F: maximum percentage of frequencies that will be masked. Default = 0.1
+    :param F_per: maximum percentage of frequencies that will be masked. Default = 0.1
     :param num_masks: number of frequency masks to use
     :return:
     """
@@ -106,8 +106,7 @@ def freq_mask(spec: numpy.ndarray, F=None, num_masks=1) -> numpy.ndarray:
     num_mel_channels = masked.shape[0]
 
     # F denotes the maximum percentage of frequencies that will be masked
-    if (F == None):
-        F = int(masked.shape[0] / 10)
+    F = int(masked.shape[0] / F_per)
 
     for i in range(0, num_masks):
         freq = random.randrange(0, F)
@@ -120,7 +119,7 @@ def freq_mask(spec: numpy.ndarray, F=None, num_masks=1) -> numpy.ndarray:
 
 
 # adapted from https://www.kaggle.com/code/yash612/simple-audio-augmentation
-def time_mask(spec: numpy.ndarray, time=None, num_masks=1) -> numpy.ndarray:
+def time_mask(spec: numpy.ndarray, time_per=10, num_masks=1) -> numpy.ndarray:
     """
     Implementation of the spectogram time masking augmentation technique, introduced in
     https://ai.googleblog.com/2019/04/specaugment-new-data-augmentation.html. Random parts of the spectogram
@@ -129,15 +128,14 @@ def time_mask(spec: numpy.ndarray, time=None, num_masks=1) -> numpy.ndarray:
     Implementation adapted from: https://www.kaggle.com/code/yash612/simple-audio-augmentation
 
     :param spec: spectogram to time mask
-    :param time: maximum percentage of time domain that will be masked. Default = 0.1
+    :param time_per: maximum percentage of time domain that will be masked. Default = 0.1
     :param num_masks: number of time masks to use
     :return:
     """
     masked = spec.copy()
     length = masked.shape[1]
 
-    if (time == None):
-        time = int(masked.shape[1] / 19)
+    time = int(masked.shape[1] / time_per)
 
     for i in range(0, num_masks):
         t = random.randrange(0, time)
@@ -148,9 +146,9 @@ def time_mask(spec: numpy.ndarray, time=None, num_masks=1) -> numpy.ndarray:
     return masked
 
 
-def get_spectogram(audio_file: numpy.ndarray, sr: int, n_mels: int, spec_height: int, spec_width: int, augmentation=False) -> numpy.ndarray:
+def get_spectogram(audio_file: numpy.ndarray, sr: int, n_mels: int, spec_height: int, spec_width: int, augmentation=False, config=None) -> torch.Tensor:
     """
-    Constructs a spectogram using the given audio signal and, optionally, augments it.
+    Constructs a spectogram tensor using the given audio signal and, optionally, augments it.
 
     :param audio_file: audio signal used to create the spectogram
     :param sr: sampling rate of the audio signal
@@ -158,14 +156,14 @@ def get_spectogram(audio_file: numpy.ndarray, sr: int, n_mels: int, spec_height:
     :param spec_height: height to which to resize the spectogram
     :param spec_width: width to which to resize the spectogram
     :param augmentation: indicates whether to use frequency and time masking augmentation on the spectogram
-    :return: spectogram
+    :return: spectogram tensor
     """
     spectogram = audio_to_spectogram(audio_file, sr, n_mels)
 
     # tenzor se prvo mora augmentirati, a tek onda skalirati!
     if augmentation:
-        spectogram = freq_mask(spectogram, int(spectogram.shape[0] / 10), 2)
-        spectogram = time_mask(spectogram, int(spectogram.shape[1] / 10), 2)
+        spectogram = freq_mask(spectogram, config.spectogram.freq_mask.F_per, config.spectogram.freq_mask.num_masks)
+        spectogram = time_mask(spectogram, config.spectogram.time_mask.time_per, config.spectogram.time_mask.num_masks)
 
     spectogram = spectogram_to_db(spectogram)
     resized_spectogram = resize(spectogram, (spec_height, spec_width))
@@ -178,9 +176,9 @@ def get_spectogram(audio_file: numpy.ndarray, sr: int, n_mels: int, spec_height:
     return spectogram_tensor.repeat(3, 1, 1)
 
 
-def get_mfcc(audio_file: numpy.ndarray, sr: int, n_mfcc: int, mfcc_height: int, mfcc_width: int, augmentation=False) -> torch.Tensor:
+def get_mfcc(audio_file: numpy.ndarray, sr: int, n_mfcc: int, mfcc_height: int, mfcc_width: int, augmentation=False, config=None) -> torch.Tensor:
     """
-    Generates Mel-frequency cepstral coefficients of the given audio signal.
+    Generates Mel-frequency cepstral coefficients tensor of the given audio signal.
 
     :param audio_file: audio signal used to calculaten MFCC
     :param sr: sampling rate of the audio signal
@@ -188,13 +186,13 @@ def get_mfcc(audio_file: numpy.ndarray, sr: int, n_mfcc: int, mfcc_height: int, 
     :param mfcc_height: height to which to resize the computed MFCC
     :param mfcc_width: width to which to resize the computed MFCC
     :param augmentation: indictaes whether to use frequency and time masking augmentation on the MFCC
-    :return:
+    :return: MFCC tensor
     """
     mfcc = lr.feature.mfcc(y=audio_file, sr=sr, n_mfcc=n_mfcc)
 
     if augmentation:
-        mfcc = freq_mask(mfcc, int(mfcc.shape[0] / 10), 2)
-        mfcc = time_mask(mfcc, int(mfcc.shape[1] / 10), 2)
+        mfcc = freq_mask(mfcc, config.spectogram.freq_mask.F_per, config.spectogram.freq_mask.num_masks)
+        mfcc = time_mask(mfcc, config.spectogram.time_mask.time_per, config.spectogram.time_mask.num_masks)
 
     # TODO do we want to resize mfcc? initial width is 259 (i don't know why), resized it is 256 (default n_mels)
     resized_mfcc = resize(mfcc, (mfcc_height, mfcc_width))
@@ -209,9 +207,11 @@ def get_mfcc(audio_file: numpy.ndarray, sr: int, n_mfcc: int, mfcc_height: int, 
 
 def collate_fn_windows(data):
     """
-       data: is a list of tuples with (example, label, length)
+
+    :param data: a list of tuples with (example, label, length)
              where 'example' is a tensor of arbitrary shape
              and label/length are scalars
+    :return:
     """
     examples, labels, lengths = zip(*data)
     max_len = max(lengths)
