@@ -146,6 +146,18 @@ def time_mask(spec: numpy.ndarray, time_per=10, num_masks=1) -> numpy.ndarray:
     return masked
 
 
+def augment_audio(audio_file: numpy.ndarray, sr=None, config=None)->numpy.ndarray:
+    """
+    Helper method to organize audio augmentation logic and enable easier Hydra integration
+    """
+    if config.audio.add_noise.active:
+        audio_file = add_noise(audio_file, config.audio.add_noise.mean, config.audio.add_noise.std, alpha=config.audio.add_noise.alpha)
+    if config.audio.pitch_shift.active:
+        audio_file = pitch_shift(audio_file, sr)
+    if config.audio.time_shift.active:
+        audio_file = time_shift(audio_file, shift_limit=config.audio.time_shift.shift_limit)
+    return audio_file
+
 def get_spectogram(audio_file: numpy.ndarray, sr: int, n_mels: int, spec_height: int, spec_width: int, augmentation=False, config=None) -> torch.Tensor:
     """
     Constructs a spectogram tensor using the given audio signal and, optionally, augments it.
