@@ -14,15 +14,13 @@ from src.utils.utils import calculate_metrics
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-NO_CLASSES = 11
-THRESHOLD_VALUE = 0.5
-LR = 0.0002
-AGGREGATION_FUNCTION="S2"
-
 class AudioLitModule(pl.LightningModule):
     def __init__(self, net: nn.Module,
                  optimizer: torch.optim.Optimizer,
                  scheduler: torch.optim.lr_scheduler,
+                 no_classes: int,
+                 threshold_value: int,
+                 aggregation_function: str
                  ):
         super().__init__()
 
@@ -35,7 +33,7 @@ class AudioLitModule(pl.LightningModule):
         self.criterion = nn.BCELoss()
         self.activation = nn.Sigmoid()
 
-        self.train_macro_acc = MultilabelAccuracy(NO_CLASSES, THRESHOLD_VALUE, average='macro')
+        self.train_macro_acc = MultilabelAccuracy(no_classes, threshold_value, average='macro')
         self.train_loss = MeanMetric()
         self.val_loss = MeanMetric()
         self.test_loss = MeanMetric()
@@ -88,7 +86,7 @@ class AudioLitModule(pl.LightningModule):
             target = targets[i]
             logits = self.forward(examples)
 
-            if (AGGREGATION_FUNCTION == "S2"):
+            if self.hparams.aggregation_function == "S2":
                 outputs_sum = np.sum(logits.cpu().numpy(), axis=0)
                 max_val = np.max(outputs_sum)
                 outputs_sum /= max_val

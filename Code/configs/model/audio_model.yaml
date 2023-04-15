@@ -1,5 +1,9 @@
 _target_: src.models.audio_model_lightning.AudioLitModule
 
+net:
+  _target_: src.models.components.cnn_spectogram_net.CNNSpectogramNet
+  no_classes: ${data.general.no_classes}
+
 optimizer:
   _target_: torch.optim.Adam
   _partial_: true
@@ -13,6 +17,6 @@ scheduler:
   factor: 0.1
   patience: 10
 
-net:
-  _target_: src.models.components.cnn_spectogram_net.CNNSpectogramNet
-  no_classes: ${data.general.no_classes}
+no_classes: ${data.general.no_classes}
+threshold_value: 0.5
+aggregation_function: S2

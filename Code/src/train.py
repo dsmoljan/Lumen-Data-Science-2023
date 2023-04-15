@@ -5,20 +5,14 @@ import pytorch_lightning as pl
 import pyrootutils
 import torch
 from pytorch_lightning import LightningModule, Callback, Trainer
-from pytorch_lightning.loggers import WandbLogger, Logger
+from pytorch_lightning.loggers import Logger
 from torch.utils.data import DataLoader
 
 from src.data_utils.IRMAS_dataloader import IRMASDataset
 
-
 from omegaconf import DictConfig
 
 from src.utils import utils, instantiators, logging_utils
-
-data_root_path = "../../../Dataset/"
-batch_size = 8
-DATA_MEAN = -0.000404580
-DATA_STD = 0.108187131
 
 # jedan siguran način za pokrenuti ovo
 # pozicioniraš se u direktorij iznad src, te pokreneš "python -m src.train"

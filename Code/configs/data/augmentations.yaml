@@ -9,7 +9,7 @@ augmentations:
     pitch_shift:
       active: true
       range: 6
-    time_shit:
+    time_shift:
       active: true
       shift_limit: 0.4
   spectogram:

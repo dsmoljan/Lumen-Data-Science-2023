@@ -67,9 +67,7 @@ class IRMASDataset(Dataset):
         audio_file = (audio_file - self.data_mean) / self.data_std
 
         if self.augmentation_config.audio.active:
-            audio_file = add_noise(audio_file, self.data_mean, self.data_std)
-            audio_file = pitch_shift(audio_file, sr)
-            audio_file = time_shift(audio_file)
+            audio_file = augment_audio(audio_file, sr, self.augmentation_config)
 
         audio_windows = []
         num_intervals = 0
