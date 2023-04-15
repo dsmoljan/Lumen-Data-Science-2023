@@ -1,0 +1,24 @@
+augmentations:
+  audio:
+    active: True
+    add_noise:
+      active: true
+      mean: ${data.general.data_mean}
+      std: ${data.general.data_std}
+      alpha: 0.005
+    pitch_shift:
+      active: true
+      range: 6
+    time_shit:
+      active: true
+      shift_limit: 0.4
+  spectogram:
+      active: True
+      freq_mask:
+        active: true
+        F_per: 10
+        num_masks: 2
+      time_mask:
+        active: true
+        time_per: 10
+        num_masks: 2
