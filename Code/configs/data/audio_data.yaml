@@ -1,5 +1,5 @@
 defaults:
-  - augmentations.yaml
+  - train_augmentations.yaml
 
 train_dataloader:
   batch_size: 8
@@ -28,7 +28,7 @@ train_dataset:
   sr: 44100
   return_type: spectogram
   use_window: False
-  augmentation_config: ${data.augmentations}
+  augmentation_config: ${data.train_augmentations}
 
 val_dataset:
   _target_: src.data_utils.IRMAS_dataloader.IRMASDataset
@@ -40,7 +40,7 @@ val_dataset:
   sr: 44100
   return_type: spectogram
   use_window: False
-  augmentation_config: ${data.augmentations}
+  augmentation_config: ${data.test_augmentations}
 
 test_dataset:
   _target_: src.data_utils.IRMAS_dataloader.IRMASDataset
@@ -53,7 +53,7 @@ test_dataset:
   return_type: spectogram
   use_window: True
   window_size: 3
-  augmentation_config: ${data.augmentations}
+  augmentation_config: ${data.test_augmentations}
 
 general:
   data_mean: -0.000404580
