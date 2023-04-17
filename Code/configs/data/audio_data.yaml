@@ -1,5 +1,5 @@
 defaults:
-  - train_augmentations.yaml
+ - test_augmentations.yaml
 
 train_dataloader:
   batch_size: 8
@@ -54,6 +54,56 @@ test_dataset:
   use_window: True
   window_size: 3
   augmentation_config: ${data.test_augmentations}
+
+train_augmentations:
+  audio:
+    active: True
+    add_noise:
+      active: True
+      mean: ${data.general.data_mean}
+      std: ${data.general.data_std}
+      alpha: 0.005
+    pitch_shift:
+      active: True
+      range: 6
+    time_shift:
+      active: True
+      shift_limit: 0.4
+  spectogram:
+      active: False
+      freq_mask:
+        active: False
+        F_per: 10
+        num_masks: 2
+      time_mask:
+        active: False
+        time_per: 10
+        num_masks: 2
+
+test_augmentations:
+  audio:
+    active: False
+    add_noise:
+      active: False
+      mean: ${data.general.data_mean}
+      std: ${data.general.data_std}
+      alpha: 0.005
+    pitch_shift:
+      active: False
+      range: 6
+    time_shift:
+      active: False
+      shift_limit: 0.4
+  spectogram:
+      active: True
+      freq_mask:
+        active: False
+        F_per: 10
+        num_masks: 2
+      time_mask:
+        active: False
+        time_per: 10
+        num_masks: 2
 
 general:
   data_mean: -0.000404580
