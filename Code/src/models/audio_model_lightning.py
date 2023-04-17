@@ -81,6 +81,8 @@ class AudioLitModule(pl.LightningModule):
 
     def test_step(self, batch: Any, batch_idx: int):
         features, targets, lengths = batch
+        outputs_list = []
+        targets_list = []
         for i in range (len(features)):
             examples = features[i][0:lengths[i]]
             target = targets[i]
@@ -93,11 +95,15 @@ class AudioLitModule(pl.LightningModule):
             else:
                 outputs_sum = np.mean(logits, axis=0)
 
-            #self.test_loss(loss)
-            result_dict = calculate_metrics(np.expand_dims(np.array(outputs_sum), axis=0), np.array(target.unsqueeze(dim=0).cpu().numpy()))
-            #self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
-            # Lightning should automatically aggregate and calculate mean of every metric in the dict
-            self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True)
+            outputs_list.extend(np.expand_dims(outputs_sum, axis=0))
+            targets_list.extend(target.unsqueeze(dim=0).cpu().numpy())
+
+        #self.test_loss(loss)
+        # TODO: možda treba ovo fixati
+        result_dict = calculate_metrics(np.array(outputs_list), np.array(targets_list))
+        #self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
+        # Lightning should automatically aggregate and calculate mean of every metric in the dict
+        self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True)
 
     def configure_optimizers(self):
         optimizer = self.hparams.optimizer(params=self.parameters())
