@@ -92,19 +92,6 @@ class AudioLitModule(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = self.hparams.optimizer(params=self.parameters())
-        if self.hparams.scheduler is not None:
-            scheduler = self.hparams.scheduler(optimizer=optimizer)
-        # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=1, verbose=True)
-            return {
-                    "optimizer": optimizer,
-                    "lr_scheduler": {
-                        "scheduler": scheduler,
-                        "monitor": "val_loss", # TODO -> ovo prebaciti u macro_f1
-                        "interval": "epoch",
-                        "strict": False,
-                        "frequency": 1,
-                    },
-                }
         return {"optimizer": optimizer}
 
 
