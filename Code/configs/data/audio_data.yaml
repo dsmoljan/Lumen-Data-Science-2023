@@ -1,6 +1,3 @@
-defaults:
- - test_augmentations.yaml
-
 train_dataloader:
   batch_size: 8
   shuffle: True
