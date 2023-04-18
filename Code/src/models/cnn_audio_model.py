@@ -217,7 +217,7 @@ class Conv1DModel(nn.Module):
                     'best_val_loss': self.best_val_loss
                 }, self.args.checkpoint_dir + '1d_conv_raw_audio_classifier.pth')
 
-    def test(self):
+    def testing_loop(self):
         test_set = IRMASDataset(self.args.data_root_path, DATA_MEAN, DATA_STD, n_mels=256, name='test', audio_augmentation=False, spectogram_augmentation=False, sr=self.args.sr, return_type='audio', use_window=True, window_size=3)
 
         test_loader = DataLoader(test_set, batch_size=self.args.batch_size, shuffle=False, drop_last=True, collate_fn=du.collate_fn_windows)

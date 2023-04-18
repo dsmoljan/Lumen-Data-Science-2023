@@ -141,26 +141,27 @@ class ResnetSpectogramModel(object):
 
             val_loss /= counter
             result = calculate_metrics(np.array(outputs_list), np.array(targets_list))
-            self.scheduler.step(result['macro/f1'])
+            print(result)
+            self.scheduler.step(result['macro_f1'])
             print("Validation results")
             print("Epoch:{:2d}: "
                   "Micro f1: {:.3f} "
                   "Macro f1: {:.3f} "
                   "Samples f1: {:.3f},"
-                  "Accuracy : {:.3f}".format(epoch,
-                                             result['micro/f1'],
-                                             result['macro/f1'],
-                                             result['samples/f1'],
-                                             result['accuracy_score']))
+                  "Exact match accuracy : {:.3f}".format(epoch,
+                                             result['micro_f1'],
+                                             result['macro_f1'],
+                                             result['samples_f1'],
+                                             result['exact_match_accuracy']))
 
             self.writer.add_scalars('Val Metrics',
-                                               {'Loss': val_loss, 'Accuracy': result['accuracy_score'],
-                                                'Micro F1': result['micro/f1'],
-                                                'Macro F1': result['macro/f1'],
-                                                'Samples F1': result['samples/f1']}, epoch)
+                                               {'Loss': val_loss, 'Exact match acc': result['exact_match_accuracy'],
+                                                'Micro F1': result['micro_f1'],
+                                                'Macro F1': result['macro_f1'],
+                                                'Samples F1': result['samples_f1']}, epoch)
 
-            if (result['macro/f1'] > self.best_macro_f1):
-                self.best_macro_f1 = result['macro/f1']
+            if (result['macro_f1'] > self.best_macro_f1):
+                self.best_macro_f1 = result['macro_f1']
                 torch.save({'epoch': epoch + 1,
                             'model_state': self.model.state_dict(),
                             'model_scheduler': self.scheduler.state_dict(),
@@ -203,7 +204,7 @@ class ResnetSpectogramModel(object):
             print("Micro f1: {:.3f} "
                   "Macro f1: {:.3f} "
                   "Samples f1: {:.3f},"
-                  "Accuracy : {:.3f}".format(result['micro/f1'],
-                                             result['macro/f1'],
-                                             result['samples/f1'],
-                                             result['accuracy_score']))
+                  "Accuracy : {:.3f}".format(result['micro_f1'],
+                                             result['macro_f1'],
+                                             result['samples_f1'],
+                                             result['exact_match_accuracy']))
