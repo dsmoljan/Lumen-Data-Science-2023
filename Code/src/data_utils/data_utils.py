@@ -173,8 +173,9 @@ def get_spectogram(audio_file: numpy.ndarray, sr: int, n_mels: int, spec_height:
     spectogram = audio_to_spectogram(audio_file, sr, n_mels)
 
     # tenzor se prvo mora augmentirati, a tek onda skalirati!
-    if augmentation:
+    if config.spectogram.freq_mask.active:
         spectogram = freq_mask(spectogram, config.spectogram.freq_mask.F_per, config.spectogram.freq_mask.num_masks)
+    if config.spectogram.time_mask.active:
         spectogram = time_mask(spectogram, config.spectogram.time_mask.time_per, config.spectogram.time_mask.num_masks)
 
     spectogram = spectogram_to_db(spectogram)
