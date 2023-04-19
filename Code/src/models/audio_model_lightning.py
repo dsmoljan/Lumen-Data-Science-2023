@@ -35,6 +35,8 @@ class AudioLitModule(pl.LightningModule):
 
         self.train_macro_acc = MultilabelAccuracy(no_classes, threshold_value, average='macro')
         self.test_loss = MeanMetric()
+        self.eval_outputs_list = []
+        self.eval_targets_list = []
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.activation(self.net(x))
@@ -60,14 +62,17 @@ class AudioLitModule(pl.LightningModule):
         logits, targets, loss = self.model_step(batch)
 
         self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
-        result_dict = calculate_metrics(logits.cpu().numpy(), targets.cpu().numpy())
-        # Lightning should automatically aggregate and calculate mean of every metric in the dict
+        self.eval_outputs_list.extend(logits.cpu().numpy())
+        self.eval_targets_list.extend(targets.cpu().numpy())
+
+    def on_validation_epoch_end(self) -> None:
+        result_dict = calculate_metrics(np.array(self.eval_outputs_list), np.array(self.eval_targets_list))
         self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        self.eval_targets_list.clear()
+        self.eval_outputs_list.clear()
 
     def test_step(self, batch: Any, batch_idx: int):
         features, targets, lengths = batch
-        outputs_list = []
-        targets_list = []
         for i in range (len(features)):
             examples = features[i][0:lengths[i]]
             target = targets[i]
@@ -80,20 +85,33 @@ class AudioLitModule(pl.LightningModule):
             else:
                 outputs_sum = np.mean(logits, axis=0)
 
-            outputs_list.extend(np.expand_dims(outputs_sum, axis=0))
-            targets_list.extend(target.unsqueeze(dim=0).cpu().numpy())
+            self.eval_outputs_list.extend(np.expand_dims(outputs_sum, axis=0))
+            self.eval_targets_list.extend(target.unsqueeze(dim=0).cpu().numpy())
 
-        #self.test_loss(loss)
-        # TODO: možda treba ovo fixati
-        result_dict = calculate_metrics(np.array(outputs_list), np.array(targets_list))
-        #self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
-        # Lightning should automatically aggregate and calculate mean of every metric in the dict
+    def on_test_epoch_end(self) -> None:
+        result_dict = calculate_metrics(np.array(self.eval_outputs_list), np.array(self.eval_targets_list))
         self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True)
+        self.eval_targets_list.clear()
+        self.eval_outputs_list.clear()
 
+
+    # TODO: vrati scheduler!
     def configure_optimizers(self):
         optimizer = self.hparams.optimizer(params=self.parameters())
+        if self.hparams.scheduler is not None:
+            scheduler = self.hparams.scheduler(optimizer=optimizer)
+        # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=1, verbose=True)
+            return {
+                    "optimizer": optimizer,
+                    "lr_scheduler": {
+                        "scheduler": scheduler,
+                        "monitor": "val_loss", # TODO -> ovo prebaciti u macro_f1
+                        "interval": "epoch",
+                        "strict": False,
+                        "frequency": 1,
+                    },
+                }
         return {"optimizer": optimizer}
-
 
 
 

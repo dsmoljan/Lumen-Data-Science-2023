@@ -10,7 +10,7 @@ import logging
 
 from pytorch_lightning.utilities import rank_zero_only
 
-
+# TODO: ovo sve dodati u hydra config!
 genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
 
 data_root_dir = "../../../../Dataset"
