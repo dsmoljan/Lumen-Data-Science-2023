@@ -67,14 +67,14 @@ train_augmentations:
       active: True
       shift_limit: 0.4
   spectogram:
-      active: False
+      active: True
       freq_mask:
-        active: False
+        active: True
         F_per: 10
         num_masks: 2
       time_mask:
-        active: False
-        time_per: 10
+        active: True
+        time_per: 19 # namjerno ostavljeno na krivoj vrijednosti radi tesiranja, potrebno vratiti na 10
         num_masks: 2
 
 test_augmentations:
@@ -92,7 +92,7 @@ test_augmentations:
       active: False
       shift_limit: 0.4
   spectogram:
-      active: True
+      active: False
       freq_mask:
         active: False
         F_per: 10
