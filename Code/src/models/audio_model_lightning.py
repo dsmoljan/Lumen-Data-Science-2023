@@ -2,15 +2,12 @@ from typing import Any
 
 import numpy as np
 import pyrootutils
-import torch
-from torchmetrics import MaxMetric, MeanMetric
-
-from torch import nn
-from torchmetrics.classification import MultilabelAccuracy
-
 import pytorch_lightning as pl
-
+import torch
 from src.utils.utils import calculate_metrics
+from torch import nn
+from torchmetrics import MaxMetric, MeanMetric
+from torchmetrics.classification import MultilabelAccuracy
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
@@ -33,8 +30,6 @@ class AudioLitModule(pl.LightningModule):
         self.criterion = nn.BCELoss()
         self.activation = nn.Sigmoid()
 
-        self.train_macro_acc = MultilabelAccuracy(no_classes, threshold_value, average='macro')
-        self.test_loss = MeanMetric()
         self.eval_outputs_list = []
         self.eval_targets_list = []
 
@@ -51,9 +46,8 @@ class AudioLitModule(pl.LightningModule):
         return logits, targets, loss
 
     def training_step(self, batch: Any, batch_idx: int):
-        logits, targets, loss = self.model_step(batch)
+        _, _, loss = self.model_step(batch)
 
-        self.train_macro_acc(logits, targets)
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
         # per Ligthning module requirements, we return loss so Lightning can perform backprop and optimizer steps
         return loss
@@ -101,6 +95,7 @@ class AudioLitModule(pl.LightningModule):
         if self.hparams.scheduler is not None:
             scheduler = self.hparams.scheduler(optimizer=optimizer)
         # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=1, verbose=True)
+        # TODO: ovo kako je trenutno implementirano ne podrzava druge schedulere koji rade step svaki step umjesto svaku epohu (linear scheduler npr)
             return {
                     "optimizer": optimizer,
                     "lr_scheduler": {
@@ -112,9 +107,3 @@ class AudioLitModule(pl.LightningModule):
                     },
                 }
         return {"optimizer": optimizer}
-
-
-
-
-
-
