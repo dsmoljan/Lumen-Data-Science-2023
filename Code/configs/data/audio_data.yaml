@@ -26,6 +26,9 @@ train_dataset:
   return_type: spectogram
   use_window: False
   augmentation_config: ${data.train_augmentations}
+  dynamic_sampling: True
+  min_sampled_files: 1
+  max_sampled_files: 5
 
 val_dataset:
   _target_: src.data_utils.IRMAS_dataloader.IRMASDataset
