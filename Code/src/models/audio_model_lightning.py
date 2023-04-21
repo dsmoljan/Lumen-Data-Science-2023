@@ -67,6 +67,9 @@ class AudioLitModule(pl.LightningModule):
 
     def on_validation_epoch_end(self) -> None:
         result_dict = calculate_metrics(np.array(self.eval_outputs_list), np.array(self.eval_targets_list))
+        # logger = False as this log is only so we can use the scheduler, the metric is already logged to wandb
+        # by logging the entire results dict
+        self.log("val_macro_f1", result_dict["macro_f1"], on_step=False, on_epoch=True, prog_bar=False, logger=False)
         self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.eval_targets_list.clear()
         self.eval_outputs_list.clear()
@@ -95,7 +98,6 @@ class AudioLitModule(pl.LightningModule):
         self.eval_outputs_list.clear()
 
 
-    # TODO: vrati scheduler!
     def configure_optimizers(self):
         optimizer = self.hparams.optimizer(params=self.parameters())
         if self.hparams.scheduler is not None:
@@ -105,7 +107,7 @@ class AudioLitModule(pl.LightningModule):
                     "optimizer": optimizer,
                     "lr_scheduler": {
                         "scheduler": scheduler,
-                        "monitor": "val_loss", # TODO -> ovo prebaciti u macro_f1
+                        "monitor": "val_macro_f1",
                         "interval": "epoch",
                         "strict": False,
                         "frequency": 1,
