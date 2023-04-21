@@ -67,6 +67,7 @@ class IRMASDataset(Dataset):
                 label_list = ast.literal_eval(target_classes)
                 for i in label_list:
                     one_hot_vector[i] = 1 if one_hot_vector[i] == 0 else one_hot_vector[i]
+            audio_file /= num_files
         else:   
             audio_file_path = os.path.join(self.data_root_path, self.examples.iloc[[index]]["file_path"].item())
             audio_file, sr = lr.load(audio_file_path, sr=self.sr)
