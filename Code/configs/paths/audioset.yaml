@@ -1,0 +1,4 @@
+defaults:
+  - default.yaml
+
+data_dir: ${paths.root_dir}/../../Dataset/audioset/

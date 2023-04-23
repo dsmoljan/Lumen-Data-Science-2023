@@ -5,14 +5,14 @@ train_dataloader:
 
 val_dataloader:
   batch_size: 8
-  shuffle: True
+  shuffle: False
   drop_last: True
 
 test_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset: ${data.test_dataset}
   batch_size: 8
-  shuffle: True
+  shuffle: False
   drop_last: True
 
 train_dataset:
