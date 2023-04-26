@@ -14,6 +14,9 @@ from omegaconf import DictConfig
 
 from src.utils import utils, instantiators, logging_utils
 
+from src.data_utils.data_utils import collate_fn_windows_stack
+
+
 # jedan siguran način za pokrenuti ovo
 # pozicioniraš se u direktorij iznad src, te pokreneš "python -m src.train"
 # zasad to radi, a čini se da ima neki library pyrootutils koji koriste u onom example projektu, pa kasnije možeš
@@ -33,7 +36,7 @@ def train(cfg: DictConfig):
     log.info(f"Instantiating val dataset <{cfg.data.val_dataset._target_}>")
     val_dataset : IRMASDataset = hydra.utils.instantiate(cfg.data.val_dataset)
 
-    train_dataloader : DataLoader = DataLoader(train_dataset, batch_size=cfg.data.train_dataloader.batch_size, shuffle=True, drop_last=True)
+    train_dataloader : DataLoader = DataLoader(train_dataset, batch_size=cfg.data.train_dataloader.batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn_windows_stack)
     val_dataloader: DataLoader = DataLoader(val_dataset, batch_size=cfg.data.val_dataloader.batch_size, shuffle=False, drop_last=True)
 
     log.info(f"Instantiating model <{cfg.model._target_}>")
