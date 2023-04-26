@@ -242,3 +242,21 @@ def collate_fn_windows(data):
         features[i] = torch.cat((torch.stack(examples[i]), emtpy_tensor))
 
     return features.float(), labels.long(), lengths.long()
+
+def collate_fn_windows_stack(data):
+    """
+    :param data: a list of tuples with (example, label, length)
+             where 'example' is a tensor of arbitrary shape
+             and label/length are scalars
+    :return:
+    """
+
+    examples, labels, lengths = zip(*data)
+    examples_tensor_list = [torch.stack(t_list) for t_list in examples]
+    result_tensor = torch.cat(examples_tensor_list, dim=0)
+    label_tuple = torch.stack(labels)
+    label_list = [label for label in label_tuple for _ in range(3)]
+    labels_tensor = torch.stack(label_list, dim=0)
+
+    return result_tensor.float(), labels_tensor.float()
+

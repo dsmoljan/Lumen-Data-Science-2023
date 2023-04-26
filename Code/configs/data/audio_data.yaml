@@ -24,9 +24,10 @@ train_dataset:
   name: train
   sr: 44100
   return_type: spectogram
-  use_window: False
+  use_window: True
+  window_size: 1
   augmentation_config: ${data.train_augmentations}
-  dynamic_sampling: True
+  dynamic_sampling: False
   min_sampled_files: 1
   max_sampled_files: 5
 
