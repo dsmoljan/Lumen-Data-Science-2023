@@ -1,14 +1,18 @@
+import logging
 import os
-from sklearn.model_selection import train_test_split
-import pandas as pd
+import re
+
+import ffmpeg
 import librosa as lr
 import numpy as np
-from torchmetrics.classification import MultilabelAccuracy
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-
-import logging
-
+import pandas as pd
+import soundfile as sf
+import torch
 from pytorch_lightning.utilities import rank_zero_only
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.model_selection import train_test_split
+from torchmetrics.classification import MultilabelAccuracy
+from tqdm import tqdm
 
 # TODO: ovo sve dodati u hydra config!
 genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
@@ -112,17 +116,22 @@ def test_val_split():
 
 #Number of records: 2874
 #Split: test; Mean: -0.000190258, std. deviation: 0.131417455
-def calculate_mean_and_std_deviation(target_sr, split):
-    assert split in ["train", "test"], "Split must be either 'train' or 'test'"
-    df = pd.read_csv(os.path.join(datalists_dir, "test_original.csv")) if split == "test" else pd.read_csv(os.path.join(datalists_dir, "train.csv"))
+def calculate_mean_and_std_deviation(csv_path, target_sr):
+    df = pd.read_csv(csv_path)
     df_dict = df.to_dict('records')
     mean_sum = 0
     std_dev_sum = 0
     count = 0
-    for row in df_dict:
-        path = row["file_path"]
-        file_path = os.path.join(data_root_dir, path)
-        y,_ = lr.load(file_path, sr=target_sr)
+    for row in tqdm(df_dict):
+        file_path = row['file_path']
+        try:
+            # if file path is absolute (audioset), data_root_dir is discarded
+            # if file path is relative (IRMAS), data_root_dir is used
+            y, _ = lr.load(os.path.join(data_root_dir, file_path), sr=target_sr)
+        except Exception as e:
+            print(f"Error: {e}")
+            print(f"File path: {file_path}")
+            continue
         mean_sum += np.mean(y)
         std_dev_sum += np.std(y)
         count += 1
@@ -132,7 +141,7 @@ def calculate_mean_and_std_deviation(target_sr, split):
 
     print('Number of records:', count)
 
-    print(f"Split: {split}; Mean: {mean_sum:.9f}, std. deviation: {std_dev_sum:.9f}")
+    print(f"CSV file: {csv_path}; Mean: {mean_sum:.9f}, std. deviation: {std_dev_sum:.9f}")
 
 def calculate_metrics(pred, target, threshold=0.5, no_classes=NO_CLASSES):
     pred = np.array(pred > threshold, dtype=int)
@@ -153,8 +162,6 @@ def calculate_metrics(pred, target, threshold=0.5, no_classes=NO_CLASSES):
         'samples_recall': recall_score(target, pred, average='samples', zero_division=0),
         'samples_f1': f1_score(target, pred, average='samples', zero_division=0),
     }
-
-import torch
 
 def print_networks(nets, names):
     print('------------Number of Parameters---------------')
@@ -190,3 +197,85 @@ def get_pylogger(name=__name__) -> logging.Logger:
         setattr(logger, level, rank_zero_only(getattr(logger, level)))
 
     return logger
+
+def train_val_test_split(data, train_percentage=0.7, val_percentage=0.1, test_percentage=0.2, seed=42):
+    assert train_percentage + val_percentage + test_percentage == 1, "Train, val and test percentages must sum to 1"
+    train_data, test_data = train_test_split(data, test_size=test_percentage, random_state=seed)
+    train_data, val_data = train_test_split(train_data, test_size=val_percentage / (train_percentage + val_percentage), random_state=seed)
+    return train_data, val_data, test_data
+
+def split_dataset(csv_path, dst_path, train_percentage=0.7, val_percentage=0.1, test_percentage=0.2, seed=42, columns_to_keep=["file_path", "classes_id"]):
+    data = pd.read_csv(csv_path, usecols=columns_to_keep)
+    train_data, val_data, test_data = train_val_test_split(data, train_percentage, val_percentage, test_percentage, seed)
+    train_data.to_csv(os.path.join(dst_path, "train.csv"), index=False)
+    val_data.to_csv(os.path.join(dst_path, "val.csv"), index=False)
+    test_data.to_csv(os.path.join(dst_path, "test.csv"), index=False)
+
+def change_mp3_to_wav(csv_file, dst_path):
+    new_df_dict = {"file_path": [], "classes_id": [], "classes": [], "YTID": [], "start_second": [], "end_second": [], "positive_labels": []}
+    df = pd.read_csv(csv_file)
+    df_dict = df.to_dict('records')
+    exception_count = 0
+    for i, row in tqdm(enumerate(df_dict)):
+        file_path = row['file_path']
+        file_name = file_path.split('/')[-1].split('.mp3')[0]
+        # some problems if \" was also removed
+        file_name = re.sub(r'([.!?<>:|*\/\\]|\s+)', '_', file_name)
+        new_path = os.path.join(dst_path, file_name + '.wav')
+        if os.path.exists(new_path):
+            new_path = os.path.join(dst_path, file_name + '_' + str(i) + '.wav')
+        try:
+            ffmpeg.input(file_path).output(new_path, acodec='pcm_s16le', ac=1, ar=44100, f='wav').run(quiet=True)
+        except Exception as e:
+            print(f"Error: {e}")
+            print(f"File path: {file_path}")
+            exception_count += 1
+            continue
+        new_df_dict['file_path'].append(new_path)
+        new_df_dict['classes_id'].append(row['classes_id'])
+        new_df_dict['classes'].append(row["classes"])
+        new_df_dict['YTID'].append(row["YTID"])
+        new_df_dict['start_second'].append(row["start_second"])
+        new_df_dict['end_second'].append(row["end_second"])
+        new_df_dict['positive_labels'].append(row["positive_labels"])
+    print(f"Number of exceptions: {exception_count}")
+    new_df = pd.DataFrame.from_dict(new_df_dict)
+    new_df.to_csv(os.path.join(dst_path, "audioset_wav.csv"), index=False)
+
+
+def align_audio_lengths(csv_file, sr=44100, audio_length=10, threshold_in_seconds=0.5):
+    df = pd.read_csv(csv_file)
+    dictionary = df.to_dict(orient="records")
+    # new dictionary to store the new data
+    new_dict = {"file_path": [], "classes_id": [], "classes": [], "YTID": [], "start_second": [], "end_second": [], "positive_labels": []}
+    counter = 0
+    threshold = int(sr * threshold_in_seconds)
+    expected_length = int(sr * audio_length)
+    for row in tqdm(dictionary):
+        audio_file_path = row["file_path"]
+        audio_file, sr = lr.load(audio_file_path, sr=44100)
+        if abs(len(audio_file) - expected_length) > threshold:
+            counter += 1
+            # delete the file
+            os.remove(audio_file_path)
+        else:
+            # use librosa.util.fix_length to make the audio file have the expected length
+            audio_file = lr.util.fix_length(audio_file, size=expected_length)
+            try:
+                sf.write(file=audio_file_path, data=audio_file, samplerate=sr)
+            except Exception as e:
+                print(f"Error: {e}")
+                print(f"File path: {audio_file_path}")
+                continue
+            new_dict["file_path"].append(audio_file_path)
+            new_dict["classes_id"].append(row["classes_id"])
+            new_dict["classes"].append(row["classes"])
+            new_dict["YTID"].append(row["YTID"])
+            new_dict["start_second"].append(row["start_second"])
+            new_dict["end_second"].append(row["end_second"])
+            new_dict["positive_labels"].append(row["positive_labels"])
+    
+    print(f"From the total of {len(dictionary)} files, {counter} files ({counter / len(dictionary)} %) have a corrupted length when using threshold {threshold} ({threshold / 44100} seconds).")
+
+    new_df = pd.DataFrame.from_dict(new_dict)
+    new_df.to_csv("../../../../Dataset/audioset/audioset_wav_fixed_lengths.csv", index=False)
