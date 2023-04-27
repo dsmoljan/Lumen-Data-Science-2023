@@ -52,13 +52,24 @@ class IRMASDataset(Dataset):
         else:
             raise f'{self.name} not defined'
 
+        if self.dynamic_sampling:
+            self.label_to_indices = {}
+            for i in range(len(self.examples)):
+                target_classes = self.examples.loc[[i]]["classes_id"].item()
+                label_list = ast.literal_eval(target_classes)
+                for label in label_list:
+                    if label not in self.label_to_indices:
+                        self.label_to_indices[label] = []
+                    self.label_to_indices[label].append(i)
+
     def __getitem__(self, index):
         if self.dynamic_sampling:
             num_files = np.random.randint(self.min_sampled_files, self.max_sampled_files + 1)
-            indices = np.random.choice(len(self.examples), num_files, replace=True)
+            chosen_labels = np.random.choice(NO_CLASSES, num_files, replace=False)
             audio_file = None
             one_hot_vector = [0] * NO_CLASSES
-            for index in indices:
+            for label in chosen_labels:
+                index = np.random.choice(self.label_to_indices[label])
                 audio_file_path = os.path.join(self.data_root_path, self.examples.iloc[[index]]["file_path"].item())
                 af, sr = lr.load(audio_file_path, sr=self.sr)
                 # TODO: ima li bolji nacin da se spoje audio fajlovi osim addition? jel okej pristup da se prvo spoje audio fajlovi pa se onda radi normalizacija, augmentacija, spektogrami/mfcc
@@ -78,7 +89,6 @@ class IRMASDataset(Dataset):
             for i in label_list:
                 one_hot_vector[i] = 1
 
-        # TODO: trenutno je moguce da se od n sampleanih neki preklapaju pa od npr. 5 samplanih budu 4 pozitivne labele, zelimo li ovo promijeniti?
         target = torch.tensor(one_hot_vector).float()
 
         assert sr == self.sr
