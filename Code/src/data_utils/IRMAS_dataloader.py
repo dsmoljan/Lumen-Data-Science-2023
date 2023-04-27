@@ -136,10 +136,11 @@ class IRMASDataset(Dataset):
             return get_spectogram(audio_file, sr=self.sr, n_mels=self.n_mels, spec_height=self.spec_height, spec_width=self.spec_width, augmentation=self.augmentation_config.spectogram.active, config=self.augmentation_config), target
 
     def __len__(self):
-        if not self.dynamic_sampling:
-            return len(self.examples)
-        else:
-            n = len(self.examples)
-            # this formula ensures that only 0.1% of the files will not be sampled and the estimation is better as n increases
-            # for n = 6000, the forula returns ~ 2.3*6000
-            return int(math.log(0.001, 1 - 1/n) * 1/n * 2/(self.min_sampled_files + self.max_sampled_files) * n)
+        return 50
+        # if not self.dynamic_sampling:
+        #     return len(self.examples)
+        # else:
+        #     n = len(self.examples)
+        #     # this formula ensures that only 0.1% of the files will not be sampled and the estimation is better as n increases
+        #     # for n = 6000, the forula returns ~ 2.3*6000
+        #     return int(math.log(0.001, 1 - 1/n) * 1/n * 2/(self.min_sampled_files + self.max_sampled_files) * n)

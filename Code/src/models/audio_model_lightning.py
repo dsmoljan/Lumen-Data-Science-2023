@@ -4,6 +4,8 @@ import numpy as np
 import pyrootutils
 import pytorch_lightning as pl
 import torch
+from sklearn.metrics import log_loss
+
 from src.utils.utils import calculate_metrics
 from torch import nn
 from torchmetrics import MaxMetric, MeanMetric
@@ -27,24 +29,24 @@ class AudioLitModule(pl.LightningModule):
 
         self.net = net
 
-        self.criterion = nn.BCELoss()
+        self.train_criterion = nn.BCEWithLogitsLoss()
+        self.eval_criterion = nn.BCELoss()
         self.activation = nn.Sigmoid()
 
         self.eval_outputs_list = []
         self.eval_targets_list = []
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.activation(self.net(x))
+        return self.net(x)
 
     # by default lightning executes validation step sanity checks before training starts,
     # so it's worth to make sure validation metrics don't store results from these checks
 
     def model_step(self, batch: Any):
         inputs, targets = batch
-        # todo preimenuj logits u probablities
-        logits = self.forward(inputs)
-        loss = self.criterion(logits, targets)
-        return logits, targets, loss
+        probs = self.forward(inputs)
+        loss = self.train_criterion(probs, targets)
+        return probs, targets, loss
 
     def training_step(self, batch: Any, batch_idx: int):
         _, _, loss = self.model_step(batch)
@@ -55,18 +57,13 @@ class AudioLitModule(pl.LightningModule):
 
     def validation_step(self, batch: Any, batch_idx: int):
         self.eval_step(batch)
-        # logits, targets, loss = self.model_step(batch)
-        #
-        # self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
-        # self.eval_outputs_list.extend(logits.cpu().numpy())
-        # self.eval_targets_list.extend(targets.cpu().numpy())
 
     def on_validation_epoch_end(self) -> None:
         result_dict = calculate_metrics(np.array(self.eval_outputs_list), np.array(self.eval_targets_list))
         # logger = False as this log is only so we can use the scheduler, the metric is already logged to wandb
         # by logging the entire results dict
-        self.log("val_loss", result_dict["bce_loss"], on_step=False, on_epoch=True, prog_bar=False, logger=False)
-        self.criterion(self.eval_targets_list, self.eval_outputs_list)
+        val_loss = self.eval_criterion(torch.tensor(np.array(self.eval_outputs_list)).float(), torch.tensor(np.array(self.eval_targets_list)).float())
+        self.log("val_loss", val_loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.eval_targets_list.clear()
         self.eval_outputs_list.clear()
@@ -79,16 +76,15 @@ class AudioLitModule(pl.LightningModule):
         for i in range (len(features)):
             examples = features[i][0:lengths[i]]
             target = targets[i]
-            logits = self.forward(examples)
+            predictions = self.activation(self.forward(examples))
 
             if self.hparams.aggregation_function == "S2":
-                outputs_sum = np.sum(logits.cpu().numpy(), axis=0)
+                outputs_sum = np.sum(predictions.cpu().numpy(), axis=0)
                 max_val = np.max(outputs_sum)
                 outputs_sum /= max_val
             else:
-                outputs_sum = np.mean(logits, axis=0)
+                outputs_sum = np.mean(predictions.cpu().numpy(), axis=0)
 
-            # loss nek se računa na osnovu agregiranih probabilitia -> to nije "pravi" loss
             self.eval_outputs_list.extend(np.expand_dims(outputs_sum, axis=0))
             self.eval_targets_list.extend(target.unsqueeze(dim=0).cpu().numpy())
 
@@ -97,7 +93,6 @@ class AudioLitModule(pl.LightningModule):
         self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True)
         self.eval_targets_list.clear()
         self.eval_outputs_list.clear()
-
 
     def configure_optimizers(self):
         optimizer = self.hparams.optimizer(params=self.parameters())
