@@ -14,7 +14,7 @@ from omegaconf import DictConfig
 
 from src.utils import utils, instantiators, logging_utils
 
-from src.data_utils.data_utils import collate_fn_windows_stack
+from src.data_utils.data_utils import collate_fn_windows_stack, collate_fn_windows
 
 
 # jedan siguran način za pokrenuti ovo
@@ -36,10 +36,9 @@ def train(cfg: DictConfig):
     log.info(f"Instantiating val dataset <{cfg.data.val_dataset._target_}>")
     val_dataset : IRMASDataset = hydra.utils.instantiate(cfg.data.val_dataset)
 
-    train_dataloader : DataLoader = DataLoader(train_dataset, batch_size=cfg.data.train_dataloader.batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn_windows_stack)
-    # TODO: val podaci imaju različite duljine, pa moraju korisiti istu collate fn i način rada s podacima kao i test dataloader
+    train_dataloader : DataLoader = DataLoader(train_dataset, batch_size=cfg.data.train_dataloader.batch_size, shuffle=True, drop_last=True)
     # pa to ispravi sutra
-    val_dataloader: DataLoader = DataLoader(val_dataset, batch_size=cfg.data.val_dataloader.batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn_windows_stack)
+    val_dataloader: DataLoader = DataLoader(val_dataset, batch_size=cfg.data.val_dataloader.batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn_windows)
 
     log.info(f"Instantiating model <{cfg.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(cfg.model)

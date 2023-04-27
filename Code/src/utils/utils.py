@@ -163,7 +163,7 @@ def calculate_metrics(pred, target, threshold=0.5, no_classes=NO_CLASSES):
         'micro_f1': f1_score(target, pred, average='micro', zero_division=0),
         'samples_precision': precision_score(target, pred, average='samples', zero_division=0),
         'samples_recall': recall_score(target, pred, average='samples', zero_division=0),
-        'samples_f1': f1_score(target, pred, average='samples', zero_division=0),
+        'samples_f1': f1_score(target, pred, average='samples', zero_division=0)
     }
 
 def print_networks(nets, names):

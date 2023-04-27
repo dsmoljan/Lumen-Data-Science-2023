@@ -24,7 +24,7 @@ train_dataset:
   name: train
   sr: 44100
   return_type: spectogram
-  use_window: True
+  use_window: False
   window_size: 1
   augmentation_config: ${data.train_augmentations}
   dynamic_sampling: False
@@ -41,7 +41,7 @@ val_dataset:
   sr: 44100
   return_type: spectogram
   use_window: True
-  window_size: 1
+  window_size: 3
   dynamic_sampling: False
   augmentation_config: ${data.test_augmentations}
 
