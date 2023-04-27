@@ -40,7 +40,9 @@ val_dataset:
   name: val
   sr: 44100
   return_type: spectogram
-  use_window: False
+  use_window: True
+  window_size: 1
+  dynamic_sampling: False
   augmentation_config: ${data.test_augmentations}
 
 test_dataset:

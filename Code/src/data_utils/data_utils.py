@@ -243,8 +243,11 @@ def collate_fn_windows(data):
 
     return features.float(), labels.long(), lengths.long()
 
+
 def collate_fn_windows_stack(data):
     """
+    A collate function which simply stacks all tensors. It assumes all examples
+    are of the exact same length!
     :param data: a list of tuples with (example, label, length)
              where 'example' is a tensor of arbitrary shape
              and label/length are scalars

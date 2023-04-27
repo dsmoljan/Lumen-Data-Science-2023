@@ -37,7 +37,9 @@ def train(cfg: DictConfig):
     val_dataset : IRMASDataset = hydra.utils.instantiate(cfg.data.val_dataset)
 
     train_dataloader : DataLoader = DataLoader(train_dataset, batch_size=cfg.data.train_dataloader.batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn_windows_stack)
-    val_dataloader: DataLoader = DataLoader(val_dataset, batch_size=cfg.data.val_dataloader.batch_size, shuffle=False, drop_last=True)
+    # TODO: val podaci imaju različite duljine, pa moraju korisiti istu collate fn i način rada s podacima kao i test dataloader
+    # pa to ispravi sutra
+    val_dataloader: DataLoader = DataLoader(val_dataset, batch_size=cfg.data.val_dataloader.batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn_windows_stack)
 
     log.info(f"Instantiating model <{cfg.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(cfg.model)
