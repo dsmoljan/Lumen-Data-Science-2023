@@ -2,7 +2,7 @@
 
 defaults:
   - _self_
-  - data: audio_data_audioset.yaml
+  - data: audio_data.yaml
   - model: audio_model.yaml
   - logger: null
   - trainer: default.yaml
