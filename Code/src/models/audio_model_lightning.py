@@ -41,6 +41,7 @@ class AudioLitModule(pl.LightningModule):
 
     def model_step(self, batch: Any):
         inputs, targets = batch
+        # todo preimenuj logits u probablities
         logits = self.forward(inputs)
         loss = self.criterion(logits, targets)
         return logits, targets, loss
@@ -53,22 +54,27 @@ class AudioLitModule(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: Any, batch_idx: int):
-        logits, targets, loss = self.model_step(batch)
-
-        self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
-        self.eval_outputs_list.extend(logits.cpu().numpy())
-        self.eval_targets_list.extend(targets.cpu().numpy())
+        self.eval_step(batch)
+        # logits, targets, loss = self.model_step(batch)
+        #
+        # self.log("val_loss", loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        # self.eval_outputs_list.extend(logits.cpu().numpy())
+        # self.eval_targets_list.extend(targets.cpu().numpy())
 
     def on_validation_epoch_end(self) -> None:
         result_dict = calculate_metrics(np.array(self.eval_outputs_list), np.array(self.eval_targets_list))
         # logger = False as this log is only so we can use the scheduler, the metric is already logged to wandb
         # by logging the entire results dict
-        self.log("val_macro_f1", result_dict["macro_f1"], on_step=False, on_epoch=True, prog_bar=False, logger=False)
+        self.log("val_loss", result_dict["bce_loss"], on_step=False, on_epoch=True, prog_bar=False, logger=False)
+        self.criterion(self.eval_targets_list, self.eval_outputs_list)
         self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.eval_targets_list.clear()
         self.eval_outputs_list.clear()
 
     def test_step(self, batch: Any, batch_idx: int):
+        self.eval_step(batch)
+
+    def eval_step(self, batch: Any):
         features, targets, lengths = batch
         for i in range (len(features)):
             examples = features[i][0:lengths[i]]
@@ -82,6 +88,7 @@ class AudioLitModule(pl.LightningModule):
             else:
                 outputs_sum = np.mean(logits, axis=0)
 
+            # loss nek se računa na osnovu agregiranih probabilitia -> to nije "pravi" loss
             self.eval_outputs_list.extend(np.expand_dims(outputs_sum, axis=0))
             self.eval_targets_list.extend(target.unsqueeze(dim=0).cpu().numpy())
 
