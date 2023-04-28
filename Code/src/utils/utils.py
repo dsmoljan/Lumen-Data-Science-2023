@@ -8,6 +8,9 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 import torch
+from torchmetrics.classification import MultilabelAccuracy
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, log_loss, hamming_loss
+from tqdm import tqdm
 
 import logging
 
@@ -15,7 +18,6 @@ from pytorch_lightning.utilities import rank_zero_only
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
 from torchmetrics.classification import MultilabelAccuracy
-from tqdm import tqdm
 
 # TODO: ovo sve dodati u hydra config!
 genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
@@ -163,7 +165,8 @@ def calculate_metrics(pred, target, threshold=0.5, no_classes=NO_CLASSES):
         'micro_f1': f1_score(target, pred, average='micro', zero_division=0),
         'samples_precision': precision_score(target, pred, average='samples', zero_division=0),
         'samples_recall': recall_score(target, pred, average='samples', zero_division=0),
-        'samples_f1': f1_score(target, pred, average='samples', zero_division=0)
+        'samples_f1': f1_score(target, pred, average='samples', zero_division=0),
+        'hamming_score': 1-hamming_loss(target, pred)
     }
 
 def print_networks(nets, names):

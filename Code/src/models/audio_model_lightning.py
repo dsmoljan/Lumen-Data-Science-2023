@@ -104,7 +104,6 @@ class AudioLitModule(pl.LightningModule):
                     "optimizer": optimizer,
                     "lr_scheduler": {
                         "scheduler": scheduler,
-                        "monitor": "val_macro_f1",
                         "interval": "epoch",
                         "strict": False,
                         "frequency": 1,
