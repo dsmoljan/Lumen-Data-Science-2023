@@ -96,17 +96,17 @@ class AudioLitModule(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = self.hparams.optimizer(params=self.parameters())
+        num_steps = self.trainer.estimated_stepping_batches
         if self.hparams.scheduler is not None:
-            scheduler = self.hparams.scheduler(optimizer=optimizer)
+            scheduler = self.hparams.scheduler(optimizer=optimizer, num_warmup_steps=0.05 * num_steps,
+                                               num_training_steps=num_steps)
         # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=1, verbose=True)
         # TODO: ovo kako je trenutno implementirano ne podrzava druge schedulere koji rade step svaki step umjesto svaku epohu (linear scheduler npr)
             return {
                     "optimizer": optimizer,
                     "lr_scheduler": {
                         "scheduler": scheduler,
-                        "interval": "epoch",
-                        "strict": False,
-                        "frequency": 1,
+                        "interval": "step"
                     },
                 }
         return {"optimizer": optimizer}

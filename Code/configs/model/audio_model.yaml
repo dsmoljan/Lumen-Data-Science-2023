@@ -19,8 +19,6 @@ optimizer:
 scheduler:
   _target_: transformers.get_polynomial_decay_schedule_with_warmup
   _partial_: true
-  num_warmup_steps: 3
-  num_training_steps: 32
   lr_end: 0.000002
   power: 0.7
 
