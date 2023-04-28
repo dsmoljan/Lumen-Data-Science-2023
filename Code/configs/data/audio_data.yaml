@@ -1,18 +1,18 @@
 train_dataloader:
-  batch_size: 8
+  batch_size: 16
   shuffle: True
   drop_last: True
 
 val_dataloader:
-  batch_size: 8
-  shuffle: False
+  batch_size: 16
+  shuffle: True
   drop_last: True
 
 test_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset: ${data.test_dataset}
-  batch_size: 8
-  shuffle: False
+  batch_size: 16
+  shuffle: True
   drop_last: True
 
 train_dataset:
