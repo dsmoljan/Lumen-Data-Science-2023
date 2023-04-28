@@ -80,7 +80,7 @@ train_augmentations:
         num_masks: 2
       time_mask:
         active: True
-        time_per: 19 # namjerno ostavljeno na krivoj vrijednosti radi tesiranja, potrebno vratiti na 10
+        time_per: 10
         num_masks: 2
 
 test_augmentations:
