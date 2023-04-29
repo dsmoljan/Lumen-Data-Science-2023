@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 
 from src.data_utils.audio_dataset import AudioDataset
 from src.data_utils.data_utils import collate_fn_windows
-from src.utils import utils, instantiators
+from src.utils import utils, instantiators, logging_utils
 from pytorch_lightning.loggers import Logger
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -47,7 +47,7 @@ def evaluate(cfg: DictConfig):
 
     if logger:
         log.info("Logging hyperparameters!")
-        utils.log_hyperparameters(object_dict)
+        logging_utils.log_hyperparameters(object_dict)
 
     log.info("Starting testing!")
     trainer.test(model=model, dataloaders=test_dataloader, ckpt_path=cfg.ckpt_path)
