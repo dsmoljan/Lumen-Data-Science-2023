@@ -1,16 +1,15 @@
-defaults:
-  - default.yaml
-
+# ovdje definiraj sve što je moguće a da je zajedničko svim data yamlicama
+# onda ćeš imati specifične yamlice za određene slučajeve, npr. korištenje windowa tijekom treniranja, korištenje audioseta itd.
 train_dataloader:
   batch_size: 8
   shuffle: True
   drop_last: True
   # if we don't want to use a custom collate fn, set this property to None
-  collate_fn: src.data_utils.data_utils.collate_fn_windows_stack
+  collate_fn: None
 
 val_dataloader:
   batch_size: 8
-  shuffle: True
+  shuffle: False
   drop_last: True
   collate_fn: src.data_utils.data_utils.collate_fn_windows
 
@@ -30,12 +29,9 @@ train_dataset:
   name: train
   sr: 44100
   return_type: spectogram
-  use_window: True
-  window_size: 2
+  use_window: False
   augmentation_config: ${data.train_augmentations}
   dynamic_sampling: False
-  min_sampled_files: 1
-  max_sampled_files: 5
 
 val_dataset:
   _target_: src.data_utils.audio_dataset.AudioDataset
