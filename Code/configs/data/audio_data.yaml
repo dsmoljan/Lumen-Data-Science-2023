@@ -6,13 +6,13 @@ train_dataloader:
   shuffle: True
   drop_last: True
   # if we don't want to use a custom collate fn, set this property to None
-  collate_fn: src.data_utils.data_utils.collate_fn_windows_stack
+  collate_fn: src.model.data_utils.data_utils.collate_fn_windows_stack
 
 val_dataloader:
   batch_size: 8
   shuffle: True
   drop_last: True
-  collate_fn: src.data_utils.data_utils.collate_fn_windows
+  collate_fn: src.model.data_utils.data_utils.collate_fn_windows
 
 test_dataloader:
   _target_: torch.utils.data.DataLoader
@@ -22,7 +22,7 @@ test_dataloader:
   drop_last: True
 
 train_dataset:
-  _target_: src.data_utils.audio_dataset.AudioDataset
+  _target_: src.model.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}
   data_std: ${data.general.data_std}
@@ -38,7 +38,7 @@ train_dataset:
   max_sampled_files: 5
 
 val_dataset:
-  _target_: src.data_utils.audio_dataset.AudioDataset
+  _target_: src.model.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}
   data_std: ${data.general.data_std}
@@ -52,7 +52,7 @@ val_dataset:
   augmentation_config: ${data.test_augmentations}
 
 test_dataset:
-  _target_: src.data_utils.audio_dataset.AudioDataset
+  _target_: src.model.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}
   data_std: ${data.general.data_std}

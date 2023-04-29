@@ -8,13 +8,12 @@ from pytorch_lightning import LightningModule, Callback, Trainer
 from pytorch_lightning.loggers import Logger
 from torch.utils.data import DataLoader
 
-from src.data_utils.audio_dataset import AudioDataset
+from src.model.data_utils.audio_dataset import AudioDataset
 
 from omegaconf import DictConfig
 
-from src.utils import utils, instantiators, logging_utils
-
-from src.data_utils.data_utils import collate_fn_windows_stack, collate_fn_windows
+from src.model.utils import instantiators, logging_utils
+from src.model.utils import utils
 
 # jedan siguran način za pokrenuti ovo
 # pozicioniraš se u direktorij iznad src, te pokreneš "python -m src.train"
@@ -82,7 +81,7 @@ def train(cfg: DictConfig):
                     ckpt_path=cfg.get("ckpt_path"))
 
 
-@hydra.main(version_base="1.3", config_path="../configs", config_name="train.yaml")
+@hydra.main(version_base="1.3", config_path="../../configs", config_name="train.yaml")
 def main(cfg: DictConfig):
     train(cfg)
 

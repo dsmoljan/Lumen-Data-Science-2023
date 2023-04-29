@@ -1,15 +1,13 @@
-import logging
 import os
 import re
 
-import ffmpeg
+#import ffmpeg
 import librosa as lr
 import numpy as np
 import pandas as pd
 import soundfile as sf
 import torch
-from torchmetrics.classification import MultilabelAccuracy
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, log_loss, hamming_loss
+from sklearn.metrics import hamming_loss
 from tqdm import tqdm
 
 import logging
@@ -22,8 +20,8 @@ from torchmetrics.classification import MultilabelAccuracy
 # TODO: ovo sve dodati u hydra config!
 genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
 
-data_root_dir = "../../../../Dataset"
-datalists_dir = "../../../../Dataset/datalists"
+data_root_dir = "../../../../../Dataset"
+datalists_dir = "../../../../../Dataset/datalists"
 
 train_prefix = "IRMAS_Training_Data"
 test_prefix = "IRMAS_Validation_Data"

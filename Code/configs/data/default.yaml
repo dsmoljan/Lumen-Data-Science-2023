@@ -11,7 +11,7 @@ val_dataloader:
   batch_size: 8
   shuffle: False
   drop_last: True
-  collate_fn: src.data_utils.data_utils.collate_fn_windows
+  collate_fn: src.model.data_utils.data_utils.collate_fn_windows
 
 test_dataloader:
   _target_: torch.utils.data.DataLoader
@@ -21,7 +21,7 @@ test_dataloader:
   drop_last: True
 
 train_dataset:
-  _target_: src.data_utils.audio_dataset.AudioDataset
+  _target_: src.model.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}
   data_std: ${data.general.data_std}
@@ -34,7 +34,7 @@ train_dataset:
   dynamic_sampling: False
 
 val_dataset:
-  _target_: src.data_utils.audio_dataset.AudioDataset
+  _target_: src.model.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}
   data_std: ${data.general.data_std}
@@ -48,7 +48,7 @@ val_dataset:
   augmentation_config: ${data.test_augmentations}
 
 test_dataset:
-  _target_: src.data_utils.audio_dataset.AudioDataset
+  _target_: src.model.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}
   data_std: ${data.general.data_std}

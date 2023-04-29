@@ -6,15 +6,15 @@ from omegaconf import DictConfig
 from pytorch_lightning import LightningModule, Trainer, Callback
 from torch.utils.data import DataLoader
 
-from src.data_utils.audio_dataset import AudioDataset
-from src.data_utils.data_utils import collate_fn_windows
-from src.utils import utils, instantiators
+from src.model.data_utils.audio_dataset import AudioDataset
+from src.model.data_utils.data_utils import collate_fn_windows
+from src.model.utils import instantiators
+from src.model import utils
 from pytorch_lightning.loggers import Logger
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 log = utils.get_pylogger(__name__)
-
 
 def evaluate(cfg: DictConfig):
     assert cfg.ckpt_path
@@ -53,7 +53,7 @@ def evaluate(cfg: DictConfig):
     trainer.test(model=model, dataloaders=test_dataloader, ckpt_path=cfg.ckpt_path)
 
 
-@hydra.main(version_base="1.3", config_path="../configs", config_name="eval.yaml")
+@hydra.main(version_base="1.3", config_path="../../configs", config_name="eval.yaml")
 def main(cfg: DictConfig):
     evaluate(cfg)
 

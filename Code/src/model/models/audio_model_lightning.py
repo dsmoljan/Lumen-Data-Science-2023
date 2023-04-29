@@ -5,7 +5,7 @@ import pyrootutils
 import pytorch_lightning as pl
 import torch
 
-from src.utils.utils import calculate_metrics
+from src.model.utils.utils import calculate_metrics
 from torch import nn
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)

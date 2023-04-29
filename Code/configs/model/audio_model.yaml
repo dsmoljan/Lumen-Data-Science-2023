@@ -1,7 +1,7 @@
-_target_: src.models.audio_model_lightning.AudioLitModule
+_target_: src.model.models.audio_model_lightning.AudioLitModule
 
 net:
-  _target_: src.models.components.cnn_spectogram_net.CNNSpectogramNet
+  _target_: src.model.models.components.cnn_spectogram_net.CNNSpectogramNet
   no_classes: ${data.general.no_classes}
 
 optimizer:

@@ -3,9 +3,13 @@ import math
 import os
 
 import pandas as pd
+import numpy as np
+import librosa as lr
 import pyrootutils
-from src.data_utils.data_utils import *
+import torch
 from torch.utils.data import Dataset
+
+from src.model.data_utils.data_utils import augment_audio, get_mfcc, get_spectogram
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 

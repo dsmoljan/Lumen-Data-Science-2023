@@ -3,10 +3,10 @@ defaults:
 
 train_dataloader:
   # if we don't want to use a custom collate fn, set this property to None
-  collate_fn: src.data_utils.data_utils.collate_fn_windows_stack
+  collate_fn: src.model.data_utils.data_utils.collate_fn_windows_stack
 
 val_dataloader:
-  collate_fn: src.data_utils.data_utils.collate_fn_windows
+  collate_fn: src.model.data_utils.data_utils.collate_fn_windows
 
 train_dataset:
   use_window: True
