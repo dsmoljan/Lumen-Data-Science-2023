@@ -1,22 +1,22 @@
 train_dataloader:
-  batch_size: 16
+  batch_size: 8
   shuffle: True
   drop_last: True
 
 val_dataloader:
-  batch_size: 16
+  batch_size: 8
   shuffle: True
   drop_last: True
 
 test_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset: ${data.test_dataset}
-  batch_size: 16
+  batch_size: 8
   shuffle: True
   drop_last: True
 
 train_dataset:
-  _target_: src.data_utils.IRMAS_dataloader.IRMASDataset
+  _target_: src.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}
   data_std: ${data.general.data_std}
@@ -24,15 +24,15 @@ train_dataset:
   name: train
   sr: 44100
   return_type: spectogram
-  use_window: False
-  window_size: 1
+  use_window: True
+  window_size: 2
   augmentation_config: ${data.train_augmentations}
   dynamic_sampling: False
   min_sampled_files: 1
   max_sampled_files: 5
 
 val_dataset:
-  _target_: src.data_utils.IRMAS_dataloader.IRMASDataset
+  _target_: src.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}
   data_std: ${data.general.data_std}
@@ -46,7 +46,7 @@ val_dataset:
   augmentation_config: ${data.test_augmentations}
 
 test_dataset:
-  _target_: src.data_utils.IRMAS_dataloader.IRMASDataset
+  _target_: src.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
   data_mean: ${data.general.data_mean}
   data_std: ${data.general.data_std}
