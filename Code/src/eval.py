@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 from pytorch_lightning import LightningModule, Trainer, Callback
 from torch.utils.data import DataLoader
 
-from src.data_utils.IRMAS_dataloader import IRMASDataset
+from src.data_utils.audio_dataset import AudioDataset
 from src.data_utils.data_utils import collate_fn_windows
 from src.utils import utils, instantiators
 from pytorch_lightning.loggers import Logger
@@ -20,7 +20,7 @@ def evaluate(cfg: DictConfig):
     assert cfg.ckpt_path
 
     log.info(f"Instantiating test dataset <{cfg.data.test_dataset._target_}>")
-    test_dataset: IRMASDataset = hydra.utils.instantiate(cfg.data.test_dataset)
+    test_dataset: AudioDataset = hydra.utils.instantiate(cfg.data.test_dataset)
 
     test_dataloader: DataLoader = DataLoader(test_dataset, batch_size=cfg.data.test_dataloader.batch_size, shuffle=True,
                                              drop_last=True, collate_fn=collate_fn_windows)

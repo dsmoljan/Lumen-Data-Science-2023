@@ -11,11 +11,11 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 NO_CLASSES = 11
 
-class IRMASDataset(Dataset):
+class AudioDataset(Dataset):
     def __init__(self, data_root_path, data_mean, data_std, n_mels=128, n_mfcc=13, spec_height=None, name='train',
                  mfcc_augmentation=False, sr=44100, return_type="audio",
                  use_window=False, window_size=None, augmentation_config=None, dynamic_sampling=False, min_sampled_files=None, max_sampled_files=None):
-        super(IRMASDataset, self).__init__()
+        super(AudioDataset, self).__init__()
         self.data_root_path = data_root_path
         self.mfcc_augmentation = mfcc_augmentation
         self.name = name
