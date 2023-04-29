@@ -1,0 +1,34 @@
+defaults:
+  - audio_data.yaml
+
+val_dataloader:
+  batch_size: 2
+
+train_dataloader:
+  batch_size: 2
+
+train_dataset:
+  sr: 16000
+  return_type: audio
+
+val_dataset:
+  sr: 16000
+  return_type: audio
+
+test_dataset:
+  sr: 16000
+  return_type: audio
+
+train_augmentations:
+  audio:
+    active: False
+    add_noise:
+      active: False
+    pitch_shift:
+      active: False
+    time_shift:
+      active: False
+
+general:
+  log_mel_spectrogram_mean: -4.2677393
+  log_mel_spectrogram_std: 4.5689974
