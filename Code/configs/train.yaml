@@ -7,7 +7,7 @@ defaults:
   - data: audio_data.yaml
   - model: audio_model.yaml
   - callbacks: default.yaml
-  - logger: wandb.yaml
+  - logger: tensorboard.yaml
   - trainer: default.yaml
   - paths: default.yaml
   - extras: default.yaml

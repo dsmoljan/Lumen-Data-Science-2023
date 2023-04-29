@@ -4,12 +4,9 @@ import numpy as np
 import pyrootutils
 import pytorch_lightning as pl
 import torch
-from sklearn.metrics import log_loss
 
 from src.utils.utils import calculate_metrics
 from torch import nn
-from torchmetrics import MaxMetric, MeanMetric
-from torchmetrics.classification import MultilabelAccuracy
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
@@ -17,6 +14,7 @@ class AudioLitModule(pl.LightningModule):
     def __init__(self, net: nn.Module,
                  optimizer: torch.optim.Optimizer,
                  scheduler: torch.optim.lr_scheduler,
+                 scheduler_warmup_percentage: float,
                  no_classes: int,
                  threshold_value: int,
                  aggregation_function: str
@@ -44,9 +42,9 @@ class AudioLitModule(pl.LightningModule):
 
     def model_step(self, batch: Any):
         inputs, targets = batch
-        probs = self.forward(inputs)
-        loss = self.train_criterion(probs, targets)
-        return probs, targets, loss
+        logits = self.forward(inputs)
+        loss = self.train_criterion(logits, targets)
+        return logits, targets, loss
 
     def training_step(self, batch: Any, batch_idx: int):
         _, _, loss = self.model_step(batch)
@@ -98,10 +96,8 @@ class AudioLitModule(pl.LightningModule):
         optimizer = self.hparams.optimizer(params=self.parameters())
         num_steps = self.trainer.estimated_stepping_batches
         if self.hparams.scheduler is not None:
-            scheduler = self.hparams.scheduler(optimizer=optimizer, num_warmup_steps=0.05 * num_steps,
+            scheduler = self.hparams.scheduler(optimizer=optimizer, num_warmup_steps=self.hparams.scheduler_warmup_percentage * num_steps,
                                                num_training_steps=num_steps)
-        # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=1, verbose=True)
-        # TODO: ovo kako je trenutno implementirano ne podrzava druge schedulere koji rade step svaki step umjesto svaku epohu (linear scheduler npr)
             return {
                     "optimizer": optimizer,
                     "lr_scheduler": {

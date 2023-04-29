@@ -8,7 +8,7 @@ from pytorch_lightning import LightningModule, Callback, Trainer
 from pytorch_lightning.loggers import Logger
 from torch.utils.data import DataLoader
 
-from src.data_utils.IRMAS_dataloader import IRMASDataset
+from src.data_utils.audio_dataset import AudioDataset
 
 from omegaconf import DictConfig
 
@@ -31,12 +31,12 @@ def train(cfg: DictConfig):
         pl.seed_everything(cfg.seed, workers=True)
 
     log.info(f"Instantiating train dataset <{cfg.data.train_dataset._target_}>")
-    train_dataset: IRMASDataset = hydra.utils.instantiate(cfg.data.train_dataset)
+    train_dataset: AudioDataset = hydra.utils.instantiate(cfg.data.train_dataset)
 
     log.info(f"Instantiating val dataset <{cfg.data.val_dataset._target_}>")
-    val_dataset : IRMASDataset = hydra.utils.instantiate(cfg.data.val_dataset)
+    val_dataset : AudioDataset = hydra.utils.instantiate(cfg.data.val_dataset)
 
-    train_dataloader : DataLoader = DataLoader(train_dataset, batch_size=cfg.data.train_dataloader.batch_size, shuffle=True, drop_last=True)
+    train_dataloader : DataLoader = DataLoader(train_dataset, batch_size=cfg.data.train_dataloader.batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn_windows_stack)
     # pa to ispravi sutra
     val_dataloader: DataLoader = DataLoader(val_dataset, batch_size=cfg.data.val_dataloader.batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn_windows)
 
