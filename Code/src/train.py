@@ -16,7 +16,6 @@ from src.utils import utils, instantiators, logging_utils
 
 from src.data_utils.data_utils import collate_fn_windows_stack, collate_fn_windows
 
-
 # jedan siguran način za pokrenuti ovo
 # pozicioniraš se u direktorij iznad src, te pokreneš "python -m src.train"
 # zasad to radi, a čini se da ima neki library pyrootutils koji koriste u onom example projektu, pa kasnije možeš
@@ -26,6 +25,7 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 log = utils.get_pylogger(__name__)
 
+
 def train(cfg: DictConfig):
     if cfg.get("seed"):
         pl.seed_everything(cfg.seed, workers=True)
@@ -34,11 +34,17 @@ def train(cfg: DictConfig):
     train_dataset: AudioDataset = hydra.utils.instantiate(cfg.data.train_dataset)
 
     log.info(f"Instantiating val dataset <{cfg.data.val_dataset._target_}>")
-    val_dataset : AudioDataset = hydra.utils.instantiate(cfg.data.val_dataset)
+    val_dataset: AudioDataset = hydra.utils.instantiate(cfg.data.val_dataset)
 
-    train_dataloader : DataLoader = DataLoader(train_dataset, batch_size=cfg.data.train_dataloader.batch_size, shuffle=True, drop_last=True, collate_fn=collate_fn_windows_stack)
-    # pa to ispravi sutra
-    val_dataloader: DataLoader = DataLoader(val_dataset, batch_size=cfg.data.val_dataloader.batch_size, shuffle=False, drop_last=True, collate_fn=collate_fn_windows)
+    train_collate_fn = hydra.utils.get_method(
+        cfg.data.train_dataloader.collate_fn) if cfg.data.train_dataloader.collate_fn != "None" else None
+    val_collate_fn = hydra.utils.get_method(
+        cfg.data.val_dataloader.collate_fn) if cfg.data.val_dataloader.collate_fn != "None" else None
+
+    train_dataloader: DataLoader = DataLoader(train_dataset, batch_size=cfg.data.train_dataloader.batch_size,
+                                              shuffle=True, drop_last=True, collate_fn=train_collate_fn)
+    val_dataloader: DataLoader = DataLoader(val_dataset, batch_size=cfg.data.val_dataloader.batch_size, shuffle=False,
+                                            drop_last=True, collate_fn=val_collate_fn)
 
     log.info(f"Instantiating model <{cfg.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(cfg.model)
