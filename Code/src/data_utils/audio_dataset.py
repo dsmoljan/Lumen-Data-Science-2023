@@ -113,7 +113,7 @@ class AudioDataset(Dataset):
                 interval_audio = audio_file[start:end]
                 # pad the last window with zeros as it's most likely going to be shorter than other windows
                 if i == (num_intervals - 1):
-                    interval_audio = np.pad(audio_file, (0, samples_per_interval - len(interval_audio)), "constant")
+                    interval_audio = np.pad(interval_audio, (0, samples_per_interval - len(interval_audio)), "constant")
                 audio_windows.append(interval_audio)
 
         if self.return_type == 'audio':
