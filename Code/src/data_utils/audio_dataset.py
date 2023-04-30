@@ -41,7 +41,7 @@ class AudioDataset(Dataset):
                 self.spec_height = self.n_mfcc
 
         assert name in ('train', 'test', 'val')
-        assert return_type in ('audio', 'spectogram', 'mfcc')
+        assert return_type in ('audio', 'spectogram', 'mfcc', 'audio-features')
 
         if name == 'train':
             self.examples = pd.read_csv(os.path.join(self.data_root_path, 'datalists', 'train.csv'))
@@ -123,6 +123,12 @@ class AudioDataset(Dataset):
                         audio_windows], target, num_intervals
             else:
                 return torch.from_numpy(audio_file).float().view(1, -1), target
+            
+        if self.return_type == 'audio-features':
+            if self.use_window:
+                return [get_audio_features(audio, sr=self.sr) for audio in audio_windows], target, num_intervals
+            else:
+                return get_audio_features(audio_file, sr=self.sr), target
 
         elif self.return_type == 'mfcc':
             if self.use_window:
