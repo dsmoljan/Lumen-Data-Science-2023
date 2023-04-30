@@ -13,7 +13,6 @@ from sklearn.metrics import (
     accuracy_score,
     f1_score,
     hamming_loss,
-    log_loss,
     precision_score,
     recall_score,
 )
@@ -25,7 +24,7 @@ from transformers import AutoFeatureExtractor
 # TODO: ovo sve dodati u hydra config!
 genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
 
-data_root_dir = "/home/tin/Documents/lumen/Dataset"
+data_root_dir = "../../../../Dataset"
 datalists_dir = "../../../../Dataset/datalists"
 
 train_prefix = "IRMAS_Training_Data"
