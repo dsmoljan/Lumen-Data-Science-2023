@@ -193,12 +193,12 @@ def get_mfcc(audio_file: numpy.ndarray, sr: int, n_mfcc: int, mfcc_height: int, 
     """
     Generates Mel-frequency cepstral coefficients tensor of the given audio signal.
 
-    :param audio_file: audio signal used to calculaten MFCC
+    :param audio_file: audio signal used to calculate MFCC
     :param sr: sampling rate of the audio signal
     :param n_mfcc: number of MFCC's to return
     :param mfcc_height: height to which to resize the computed MFCC
     :param mfcc_width: width to which to resize the computed MFCC
-    :param augmentation: indictaes whether to use frequency and time masking augmentation on the MFCC
+    :param augmentation: indicates whether to use frequency and time masking augmentation on the MFCC
     :return: MFCC tensor
     """
     mfcc = lr.feature.mfcc(y=audio_file, sr=sr, n_mfcc=n_mfcc)
