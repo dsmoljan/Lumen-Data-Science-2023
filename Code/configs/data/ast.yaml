@@ -1,0 +1,28 @@
+defaults:
+  - default.yaml
+
+train_dataloader:
+  batch_size: 16
+
+val_dataloader:
+  batch_size: 16
+
+train_dataset:
+  sr: 16000
+  return_type: audio
+
+val_dataset:
+  sr: 16000
+  return_type: audio
+
+test_dataset:
+  sr: 16000
+  return_type: audio
+
+general:
+  # IRMAS
+  log_mel_spectrogram_mean: 0.326588890
+  log_mel_spectrogram_std: 0.287198263
+  # AudioSet
+  # log_mel_spectrogram_mean: -0.073369932
+  # log_mel_spectrogram_std: 0.394402992

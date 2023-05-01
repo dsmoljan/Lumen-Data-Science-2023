@@ -8,16 +8,18 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 import torch
-from torchmetrics.classification import MultilabelAccuracy
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, log_loss, hamming_loss
-from tqdm import tqdm
-
-import logging
-
 from pytorch_lightning.utilities import rank_zero_only
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    hamming_loss,
+    precision_score,
+    recall_score,
+)
 from sklearn.model_selection import train_test_split
 from torchmetrics.classification import MultilabelAccuracy
+from tqdm import tqdm
+from transformers import AutoFeatureExtractor
 
 # TODO: ovo sve dodati u hydra config!
 genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
@@ -147,6 +149,37 @@ def calculate_mean_and_std_deviation(csv_path, target_sr):
     print('Number of records:', count)
 
     print(f"CSV file: {csv_path}; Mean: {mean_sum:.9f}, std. deviation: {std_dev_sum:.9f}")
+
+
+def calculate_mean_and_std_mel_spectrogram(csv_path, target_sr):
+    featurizer = AutoFeatureExtractor.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
+    df = pd.read_csv(csv_path)
+    df_dict = df.to_dict('records')
+    mean_sum = 0
+    std_dev_sum = 0
+    count = 0
+    for row in tqdm(df_dict):
+        file_path = row['file_path']
+        try:
+            # if file path is absolute (audioset), data_root_dir is discarded
+            # if file path is relative (IRMAS), data_root_dir is used
+            y, _ = lr.load(os.path.join(data_root_dir, file_path), sr=target_sr)
+            mel_spectrogram = featurizer(y, return_tensors="np", sampling_rate=featurizer.sampling_rate).input_values
+        except Exception as e:
+            print(f"Error: {e}")
+            print(f"File path: {file_path}")
+            continue
+        mean_sum += np.mean(mel_spectrogram)
+        std_dev_sum += np.std(mel_spectrogram)
+        count += 1
+
+    mean_sum /= count
+    std_dev_sum /= count
+
+    print('Number of records:', count)
+
+    print(f"CSV file: {csv_path}; Mean: {mean_sum:.9f}, std. deviation: {std_dev_sum:.9f}")
+
 
 def calculate_metrics(pred, target, threshold=0.5, no_classes=NO_CLASSES):
     pred = np.array(pred > threshold, dtype=int)

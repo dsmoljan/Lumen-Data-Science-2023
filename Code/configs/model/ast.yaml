@@ -1,0 +1,9 @@
+defaults:
+  - audio_model.yaml
+
+net:
+  _target_: src.models.components.audio_spectrogram_transformer.AST
+  no_classes: ${data.general.no_classes}
+  mean: ${data.general.log_mel_spectrogram_mean}
+  std: ${data.general.log_mel_spectrogram_std}
+  model_name_or_path: "MIT/ast-finetuned-audioset-10-10-0.4593"
