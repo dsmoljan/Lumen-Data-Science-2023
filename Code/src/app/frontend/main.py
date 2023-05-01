@@ -10,7 +10,11 @@ ENDPOINT_URL = "http://localhost:8080/api/predict"
 # defines an h1 header
 st.title("Audio classification app")
 
+class_mappings = {"cel": 0, "cla": 1, "flu": 2, "gac": 3, "gel": 4, "org": 5, "pia": 6, "sax": 7, "tru": 8, "vio": 9,
+                  "voi": 10}
 
+class_names_mappings = {"cel": "Cello", "cla": "Clarinet", "flu": "Flute", "gac": "Guitar - acoustic", "gel": "Guitar - electric",
+                        "org": "Organ", "pia": "Piano", "sax": "Saxophone", "tru": "Trumpet", "vio": "Violin", "voi": "Voice"}
 
 hide_table_row_index = """
             <style>
@@ -61,9 +65,9 @@ if st.button("Submit"):
         table_data = []
         for key, value in response_dict.items():
             if value == 1:
-                table_data.append({"Instrument": key, "Prediction": "✅"})
+                table_data.append({"Instrument": class_names_mappings[key], "Prediction": "✅"})
             else:
-                table_data.append({"Instrument": key, "Prediction": "❌"})
+                table_data.append({"Instrument": class_names_mappings[key], "Prediction": "❌"})
 
         df = pd.DataFrame(table_data)
         st.table(df)
