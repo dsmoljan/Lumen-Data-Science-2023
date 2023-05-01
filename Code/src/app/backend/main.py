@@ -1,14 +1,12 @@
 from io import BytesIO
 
-import fastapi
-import torch
 import librosa as lr
 import uvicorn
 from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.logger import logger
 from starlette.middleware.cors import CORSMiddleware
 
-from src.app.backend.model_wrapper import ModelWrapper
+from model_wrapper import ModelWrapper
 
 app = FastAPI()
 

@@ -6,7 +6,7 @@ import json
 
 from torch import nn
 
-from src.app.backend.preprocessing import preprocess_spectogram
+from preprocessing import preprocess_spectogram
 
 BASE_MODEL_CHECKPOINT = "./checkpoints/resnet_model_window_3s.pt"
 

@@ -1,11 +1,9 @@
 import requests
 import streamlit as st
-from matplotlib import pyplot as plt
-from awesome_table import AwesomeTable
 import pandas as pd
 
 
-ENDPOINT_URL = "http://localhost:8080/api/predict"
+ENDPOINT_URL = "http://172.24.16.20:8080/api/predict"
 
 # defines an h1 header
 st.title("Audio classification app")

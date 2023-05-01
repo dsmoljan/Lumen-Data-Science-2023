@@ -133,3 +133,6 @@ checkpoints/
 
 # tensorboard results
 tensorboard_results/
+
+.ckpt
+.pt
