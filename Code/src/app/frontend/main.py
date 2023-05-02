@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 
 
+# TODO: zamijeni s localhost!!!
 ENDPOINT_URL = "http://172.24.16.20:8080/api/predict"
 
 # defines an h1 header
