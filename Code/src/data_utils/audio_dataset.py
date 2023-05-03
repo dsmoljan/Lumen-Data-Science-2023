@@ -1,6 +1,7 @@
 import ast
 import math
 import os
+import random
 
 import pandas as pd
 import pyrootutils
@@ -64,21 +65,37 @@ class AudioDataset(Dataset):
 
     def __getitem__(self, index):
         if self.dynamic_sampling:
-            num_files = np.random.randint(self.min_sampled_files, self.max_sampled_files + 1)
-            chosen_labels = np.random.choice(NO_CLASSES, num_files, replace=False)
-            audio_file = None
+            # assert self.min_sampled_files > 0
+            # assert self.max_sampled_files < NO_CLASSES
+
+            audio_file_path = os.path.join(self.data_root_path, self.examples.iloc[[index]]["file_path"].item())
+            audio_file, sr = lr.load(audio_file_path, sr=self.sr)
+
+            target_classes = self.examples.loc[[index]]["classes_id"].item()
+
+            label_list = ast.literal_eval(target_classes)
             one_hot_vector = [0] * NO_CLASSES
+            for i in label_list:
+                one_hot_vector[i] = 1
+
+            num_files = np.random.randint(self.min_sampled_files - 1, self.max_sampled_files)
+            chosen_labels = []
+            while (len(chosen_labels) < num_files):
+                random_label = random.randrange(NO_CLASSES)
+                if random_label not in chosen_labels and random_label not in label_list:
+                    chosen_labels.append(random_label)
             for label in chosen_labels:
                 index = np.random.choice(self.label_to_indices[label])
                 audio_file_path = os.path.join(self.data_root_path, self.examples.iloc[[index]]["file_path"].item())
                 af, sr = lr.load(audio_file_path, sr=self.sr)
                 # TODO: ima li bolji nacin da se spoje audio fajlovi osim addition? jel okej pristup da se prvo spoje audio fajlovi pa se onda radi normalizacija, augmentacija, spektogrami/mfcc
-                audio_file = af if audio_file is None else (audio_file + af)
+                audio_file = (audio_file + af)
                 target_classes = self.examples.loc[[index]]["classes_id"].item()
                 label_list = ast.literal_eval(target_classes)
                 for i in label_list:
                     one_hot_vector[i] = 1 if one_hot_vector[i] == 0 else one_hot_vector[i]
-            audio_file /= num_files
+
+            audio_file /= (num_files + 1)
         else:   
             audio_file_path = os.path.join(self.data_root_path, self.examples.iloc[[index]]["file_path"].item())
             audio_file, sr = lr.load(audio_file_path, sr=self.sr)
@@ -136,10 +153,5 @@ class AudioDataset(Dataset):
             return get_spectogram(audio_file, sr=self.sr, n_mels=self.n_mels, spec_height=self.spec_height, spec_width=self.spec_width, augmentation=self.augmentation_config.spectogram.active, config=self.augmentation_config), target
 
     def __len__(self):
-        if not self.dynamic_sampling:
-            return len(self.examples)
-        else:
-            n = len(self.examples)
-            # this formula ensures that only 0.1% of the files will not be sampled and the estimation is better as n increases
-            # for n = 6000, the forula returns ~ 2.3*6000
-            return int(math.log(0.001, 1 - 1/n) * 1/n * 2/(self.min_sampled_files + self.max_sampled_files) * n)
+        return len(self.examples)
+

@@ -2,7 +2,7 @@ import logging
 import os
 import re
 
-import ffmpeg
+#import ffmpeg
 import librosa as lr
 import numpy as np
 import pandas as pd
