@@ -1,11 +1,15 @@
+import ast
 import logging
 import os
 import re
+from collections import defaultdict
 
 import ffmpeg
 import librosa as lr
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import soundfile as sf
 import torch
 from pytorch_lightning.utilities import rank_zero_only
@@ -17,6 +21,7 @@ from sklearn.metrics import (
     recall_score,
 )
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MultiLabelBinarizer
 from torchmetrics.classification import MultilabelAccuracy
 from tqdm import tqdm
 from transformers import AutoFeatureExtractor
@@ -32,6 +37,7 @@ test_prefix = "IRMAS_Validation_Data"
 
 class_mappings = {"cel": 0, "cla": 1, "flu": 2, "gac": 3, "gel": 4, "org": 5, "pia": 6, "sax": 7, "tru": 8, "vio": 9,
                   "voi": 10}
+class_mappings_inv = {v: k for k, v in class_mappings.items()}
 
 VAL_PERCENTAGE = 0.3
 
@@ -318,3 +324,84 @@ def align_audio_lengths(csv_file, sr=44100, audio_length=10, threshold_in_second
 
     new_df = pd.DataFrame.from_dict(new_dict)
     new_df.to_csv("../../../../Dataset/audioset/audioset_wav_fixed_lengths.csv", index=False)
+
+
+def analyze_dataset(csv_path: str, sr: int, dataset_name: str) -> None:
+    assert dataset_name in ["IRMAS", "audioset"], "Dataset name must be either IRMAS or audioset."
+    split_name = csv_path.split("/")[-1].split(".")[0]
+    durations = []
+    labels_list = []
+    instances_per_class = defaultdict(int)
+    durations_by_class = defaultdict(list)
+    number_of_labels_per_instance = []
+    df = pd.read_csv(csv_path)
+    dictionary = df.to_dict(orient="records")
+    for row in tqdm(dictionary):
+        audio_file_path = os.path.join(data_root_dir, row["file_path"])
+        audio_file, sr = lr.load(audio_file_path, sr=sr)
+        labels = ast.literal_eval(row["classes_id"])
+        duration = len(audio_file) / sr
+        durations.append(duration)
+        labels_list.append(labels)
+        number_of_labels_per_instance.append(len(labels))
+        for label in labels:
+            instances_per_class[label] += 1
+            durations_by_class[label].append(duration)
+
+    os.makedirs(f"./plots/{dataset_name}/{split_name}", exist_ok=True)
+
+    sns.set_theme(style="whitegrid")
+    sns.set(font_scale=2)
+
+    # plot the durations using seaborn
+    sns.displot(durations, kde=True, height=10, aspect=2)
+    plt.xlabel("Duration (seconds)")
+    plt.ylabel("Number of instances")
+    plt.savefig(f"./plots/{dataset_name}/{split_name}/duration_distribution.png")
+    plt.show()
+
+    # co-occurrence matrix from labels_list
+    mlb = MultiLabelBinarizer(classes=range(NO_CLASSES))
+    one_hot_labels = mlb.fit_transform(labels_list)
+    co_occurrence_matrix = np.dot(one_hot_labels.T, one_hot_labels)
+    plt.figure(figsize=(21, 20))
+    sns.heatmap(co_occurrence_matrix, xticklabels=class_mappings.keys(), yticklabels=class_mappings.keys(), cmap="Blues")
+    plt.title("Label co-occurrence matrix")
+    plt.savefig(f"./plots/{dataset_name}/{split_name}/co_occurrence_matrix.png")
+    plt.show()
+
+    # plot the number of labels per instance as a bar plot
+    plt.figure(figsize=(20, 10))
+    sns.countplot(y=sorted(number_of_labels_per_instance), color="b")
+    plt.xlabel("Number of instances")
+    plt.ylabel("Number of labels")
+    plt.savefig(f"./plots/{dataset_name}/{split_name}/number_of_labels_per_instance.png")
+    plt.show()
+
+    # plot the number of instances per class sorted by number of instances in a descent order; plot classes on y axis and number of instances on x axis
+    instances_per_class = {k: v for k, v in sorted(instances_per_class.items(), key=lambda item: item[0])}
+    instances_per_class = {class_mappings_inv[k]: v for k, v in instances_per_class.items()}
+    plt.figure(figsize=(16, 20))
+    sns.barplot(x=[instances_per_class[i] for i in instances_per_class.keys()], y=[i for i in instances_per_class.keys()], order=[class_mappings_inv[elem] for elem in np.argsort([-instances_per_class[i] for i in instances_per_class.keys()])], color="b", orient='h')
+    plt.xlabel("Number of instances")
+    plt.ylabel("Class")
+    plt.savefig(f"./plots/{dataset_name}/{split_name}/instances_per_class.png")
+    plt.show()
+
+    # plot the durations per class as violin plots
+    durations_by_class = {class_mappings_inv[k]: durations_by_class[k] for k in sorted(durations_by_class)}
+    plt.figure(figsize=(16, 20))
+    sns.violinplot(data=list(durations_by_class.values()), inner="stick", orient="h", cut=0)
+    plt.xlabel("Duration (seconds)")
+    plt.ylabel("Class")
+    plt.yticks([i for i in range(NO_CLASSES)], [class_mappings_inv[i] for i in range(NO_CLASSES)])
+    plt.savefig(f"./plots/{dataset_name}/{split_name}/durations_per_class.png")
+    plt.show()
+
+    # plot duration (float) and number of labels per instance (int) as a violin plot
+    plt.figure(figsize=(20, 15))
+    sns.violinplot(x=durations, y=number_of_labels_per_instance, cut=0, inner="stick", orient="h")
+    plt.xlabel("Duration (seconds)")
+    plt.ylabel("Number of labels")
+    plt.savefig(f"./plots/{dataset_name}/{split_name}/durations_per_num_labels.png")
+    plt.show()
