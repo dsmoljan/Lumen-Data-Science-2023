@@ -4,23 +4,28 @@ import numpy as np
 import pyrootutils
 import pytorch_lightning as pl
 import torch
-
+from src.models.abstract_model import AbstractModel
 from src.utils.utils import calculate_metrics
 from torch import nn
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 class AudioLitModule(pl.LightningModule):
-    def __init__(self, net: nn.Module,
-                 optimizer: torch.optim.Optimizer,
-                 scheduler: torch.optim.lr_scheduler,
+    def __init__(self, net: AbstractModel,
+                 optimizer_base: torch.optim.Optimizer,
+                 optimizer_classifier: torch.optim.Optimizer,
+                 scheduler_base: torch.optim.lr_scheduler,
+                 scheduler_classifier: torch.optim.lr_scheduler,
                  scheduler_warmup_percentage: float,
                  no_classes: int,
                  threshold_value: int,
-                 aggregation_function: str
+                 aggregation_function: str,
+                 gradient_accumulation_steps: int,
                  ):
         super().__init__()
 
+        self.automatic_optimization = False
+        
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
@@ -50,7 +55,15 @@ class AudioLitModule(pl.LightningModule):
         _, _, loss = self.model_step(batch)
 
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
-        # per Ligthning module requirements, we return loss so Lightning can perform backprop and optimizer steps
+        
+        self.manual_backward(loss)
+        if (batch_idx + 1) % self.hparams.gradient_accumulation_steps == 0:
+            optimizers, lr_schedulers = self.optimizers(), self.lr_schedulers()
+            for optimizer in optimizers:
+                optimizer.step()
+                optimizer.zero_grad()
+            for lr_scheduler in lr_schedulers:
+                lr_scheduler.step()
         return loss
 
     def validation_step(self, batch: Any, batch_idx: int):
@@ -93,16 +106,24 @@ class AudioLitModule(pl.LightningModule):
         self.eval_outputs_list.clear()
 
     def configure_optimizers(self):
-        optimizer = self.hparams.optimizer(params=self.parameters())
-        num_steps = self.trainer.estimated_stepping_batches
-        if self.hparams.scheduler is not None:
-            scheduler = self.hparams.scheduler(optimizer=optimizer, num_warmup_steps=self.hparams.scheduler_warmup_percentage * num_steps,
-                                               num_training_steps=num_steps)
-            return {
-                    "optimizer": optimizer,
-                    "lr_scheduler": {
-                        "scheduler": scheduler,
-                        "interval": "step"
-                    },
-                }
-        return {"optimizer": optimizer}
+        cls_named_params = self.net.get_cls_named_parameters()
+        params_base, params_classifier = [], []
+        for n, p in self.net.named_parameters():
+            if n in cls_named_params:
+                params_classifier.append(p)
+            else:
+                params_base.append(p)
+        assert len(params_classifier) > 0, "No classifier parameters found, check the named parameters returned by the model."
+        optimizer_base = self.hparams.optimizer_base(params=params_base)
+        optimizer_classifier = self.hparams.optimizer_classifier(params=params_classifier)
+        num_steps = self.trainer.estimated_stepping_batches / self.hparams.gradient_accumulation_steps
+        if self.hparams.scheduler_base is not None:
+            scheduler_base = self.hparams.scheduler_base(optimizer=optimizer_base, num_warmup_steps=self.hparams.scheduler_warmup_percentage * num_steps, num_training_steps=num_steps)
+        if self.hparams.scheduler_classifier is not None:
+            scheduler_classifier = self.hparams.scheduler_classifier(optimizer=optimizer_classifier, num_warmup_steps=self.hparams.scheduler_warmup_percentage * num_steps, num_training_steps=num_steps)
+        if self.hparams.scheduler_base is not None and self.hparams.scheduler_classifier is not None:
+            return [optimizer_base, optimizer_classifier], [scheduler_base, scheduler_classifier]
+        elif self.hparams.scheduler_base is not None:
+            return [optimizer_base], [scheduler_base]
+        else:
+            return [optimizer_base, optimizer_classifier]

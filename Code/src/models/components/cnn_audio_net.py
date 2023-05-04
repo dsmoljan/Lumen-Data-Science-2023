@@ -1,8 +1,10 @@
 import torch
-from torch import nn, Tensor
 import torch.nn.functional as F
+from src.models.abstract_model import AbstractModel
+from torch import Tensor, nn
 
-class CNN1DAudioNet(nn.Module):
+
+class CNN1DAudioNet(AbstractModel):
     def __init__(self, no_classes: 11):
         super().__init__()
 
@@ -47,6 +49,14 @@ class CNN1DAudioNet(nn.Module):
         x = torch.squeeze(x, 2)
         x = nn.Sequential(self.fc1, self.dropout1, self.relu, self.fc2)(x)
         return x
+    
+    def get_cls_named_parameters(self):
+        named_parameters = []
+        for n, _ in self.fc1.named_parameters(prefix="fc1"):
+            named_parameters.append(n)
+        for n, _ in self.fc2.named_parameters(prefix="fc2"):
+            named_parameters.append(n)
+        return named_parameters
 
 if __name__ == "__main__":
     _ = CNN1DAudioNet()
