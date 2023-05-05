@@ -1,4 +1,4 @@
-_target_: src.models.audio_model_lightning.AudioLitModuleSeparateOptimizers
+_target_: src.models.audio_model_lightning_separate_optimizers.AudioLitModuleSeparateOptimizers
 
 net:
   _target_: src.models.components.audio_spectrogram_transformer.AST
