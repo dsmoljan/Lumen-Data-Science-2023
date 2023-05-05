@@ -35,5 +35,5 @@ scheduler_warmup_percentage: 0.05
 no_classes: ${data.general.no_classes}
 threshold_value: 0.5
 aggregation_function: S2
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 16
 apply_gradient_clipping: true
