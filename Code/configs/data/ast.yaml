@@ -19,6 +19,16 @@ test_dataset:
   sr: 16000
   return_type: audio
 
+train_augmentations:
+  audio:
+    active: False
+    add_noise:
+      active: False
+    pitch_shift:
+      active: False
+    time_shift:
+      active: False
+
 general:
   # IRMAS
   log_mel_spectrogram_mean: 0.326588890

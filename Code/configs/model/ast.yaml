@@ -1,5 +1,4 @@
-defaults:
-  - audio_model.yaml
+_target_: src.models.audio_model_lightning.AudioLitModuleSeparateOptimizers
 
 net:
   _target_: src.models.components.audio_spectrogram_transformer.AST
@@ -7,3 +6,34 @@ net:
   mean: ${data.general.log_mel_spectrogram_mean}
   std: ${data.general.log_mel_spectrogram_std}
   model_name_or_path: "MIT/ast-finetuned-audioset-10-10-0.4593"
+
+optimizer_base:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 1e-5
+  weight_decay: 1e-5
+
+optimizer_classifier:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 1e-3
+  weight_decay: 1e-5
+
+scheduler_base:
+  _target_: transformers.get_polynomial_decay_schedule_with_warmup
+  _partial_: true
+  lr_end: 5e-8
+  power: 0.7
+
+scheduler_classifier:
+  _target_: transformers.get_polynomial_decay_schedule_with_warmup
+  _partial_: true
+  lr_end: 1e-5
+  power: 0.7
+
+scheduler_warmup_percentage: 0.05
+no_classes: ${data.general.no_classes}
+threshold_value: 0.5
+aggregation_function: S2
+gradient_accumulation_steps: 1
+apply_gradient_clipping: true

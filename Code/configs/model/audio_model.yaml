@@ -4,32 +4,19 @@ net:
   _target_: src.models.components.cnn_spectogram_net.CNNSpectogramNet
   no_classes: ${data.general.no_classes}
 
-optimizer_base:
+optimizer:
   _target_: torch.optim.Adam
   _partial_: true
   lr: 2e-4
   weight_decay: 1e-5
 
-optimizer_classifier:
-  _target_: torch.optim.Adam
-  _partial_: true
-  lr: 1e-3
-  weight_decay: 1e-5
-
-scheduler_base:
+scheduler:
   _target_: transformers.get_polynomial_decay_schedule_with_warmup
   _partial_: true
   lr_end: 2e-6
-  power: 0.7
-
-scheduler_classifier:
-  _target_: transformers.get_polynomial_decay_schedule_with_warmup
-  _partial_: true
-  lr_end: 1e-5
   power: 0.7
 
 scheduler_warmup_percentage: 0.05
 no_classes: ${data.general.no_classes}
 threshold_value: 0.5
 aggregation_function: S2
-gradient_accumulation_steps: 1
