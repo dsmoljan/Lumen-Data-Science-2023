@@ -10,7 +10,7 @@ train_dataloader:
 
 val_dataloader:
   batch_size: 8
-  shuffle: True
+  shuffle: False
   drop_last: True
   collate_fn: src.data_utils.data_utils.collate_fn_windows
 
