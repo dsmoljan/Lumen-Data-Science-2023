@@ -31,10 +31,6 @@ test_dataset:
   use_window: true
   window_size: 1
 
-train_augmentations:
-  audio:
-    active: true
-
 general:
   # IRMAS
   log_mel_spectrogram_mean: -4.2677393
