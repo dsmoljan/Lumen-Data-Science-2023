@@ -1,7 +1,9 @@
-from torch import nn, Tensor
+from src.models.abstract_model import AbstractModel
+from torch import Tensor, nn
 from torchvision import models
 
-class CNNSpectogramNet(nn.Module):
+
+class CNNSpectogramNet(AbstractModel):
     def __init__(self, no_classes = 11):
         super().__init__()
         # TODO: baza modela se isto može učitati iz Hydre
@@ -15,5 +17,5 @@ class CNNSpectogramNet(nn.Module):
     def forward(self, x: Tensor):
         return self.model(x)
 
-
-
+    def get_cls_named_parameters(self):
+        return [n for n, _ in self.model.fc.named_parameters(prefix="model.fc")]

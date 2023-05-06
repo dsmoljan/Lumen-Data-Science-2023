@@ -4,23 +4,23 @@ import numpy as np
 import pyrootutils
 import pytorch_lightning as pl
 import torch
-
+from src.models.abstract_model import AbstractModel
 from src.utils.utils import calculate_metrics
 from torch import nn
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 class AudioLitModule(pl.LightningModule):
-    def __init__(self, net: nn.Module,
+    def __init__(self, net: AbstractModel,
                  optimizer: torch.optim.Optimizer,
                  scheduler: torch.optim.lr_scheduler,
                  scheduler_warmup_percentage: float,
                  no_classes: int,
                  threshold_value: int,
-                 aggregation_function: str
+                 aggregation_function: str,
                  ):
         super().__init__()
-
+        
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
@@ -48,9 +48,7 @@ class AudioLitModule(pl.LightningModule):
 
     def training_step(self, batch: Any, batch_idx: int):
         _, _, loss = self.model_step(batch)
-
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
-        # per Ligthning module requirements, we return loss so Lightning can perform backprop and optimizer steps
         return loss
 
     def validation_step(self, batch: Any, batch_idx: int):

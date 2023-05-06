@@ -1,3 +1,4 @@
+from src.models.abstract_model import AbstractModel
 from torch import nn
 from transformers import (
     AutoConfig,
@@ -6,7 +7,7 @@ from transformers import (
 )
 
 
-class AST(nn.Module):
+class AST(AbstractModel):
     def __init__(self, no_classes, mean, std, model_name_or_path):
         super().__init__()
         self.config = AutoConfig.from_pretrained(model_name_or_path, num_labels=no_classes, return_dict=True)
@@ -19,3 +20,6 @@ class AST(nn.Module):
             x = x.squeeze(1).tolist()
         features = self.featurizer(x, return_tensors="pt", sampling_rate=self.featurizer.sampling_rate)
         return self.model(features.input_values).logits
+    
+    def get_cls_named_parameters(self):
+        return [n for n, _ in self.model.classifier.named_parameters(prefix="model.classifier")]
