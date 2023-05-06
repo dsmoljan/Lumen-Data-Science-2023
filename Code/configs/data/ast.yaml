@@ -2,22 +2,32 @@ defaults:
   - default.yaml
 
 train_dataloader:
-  batch_size: 16
+  batch_size: 1
+  collate_fn: src.data_utils.data_utils.collate_fn_windows_stack
 
 val_dataloader:
-  batch_size: 16
+  batch_size: 1
+
+test_dataloader:
+  batch_size: 1
 
 train_dataset:
   sr: 16000
   return_type: audio
+  use_window: true
+  window_size: 1
 
 val_dataset:
   sr: 16000
   return_type: audio
+  use_window: true
+  window_size: 1
 
 test_dataset:
   sr: 16000
   return_type: audio
+  use_window: true
+  window_size: 1
 
 train_augmentations:
   audio:

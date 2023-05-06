@@ -157,34 +157,33 @@ def calculate_mean_and_std_deviation(csv_path, target_sr):
     print(f"CSV file: {csv_path}; Mean: {mean_sum:.9f}, std. deviation: {std_dev_sum:.9f}")
 
 
-def calculate_mean_and_std_mel_spectrogram(csv_path, target_sr):
-    featurizer = AutoFeatureExtractor.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
+def calculate_mean_and_std_mel_spectrogram(csv_path, target_sr, audio_mean, audio_std_dev, max_length):
+    featurizer = AutoFeatureExtractor.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593", max_length=max_length)
     df = pd.read_csv(csv_path)
     df_dict = df.to_dict('records')
-    mean_sum = 0
-    std_dev_sum = 0
-    count = 0
+    means = []
+    std_devs = []
     for row in tqdm(df_dict):
         file_path = row['file_path']
         try:
             # if file path is absolute (audioset), data_root_dir is discarded
             # if file path is relative (IRMAS), data_root_dir is used
             y, _ = lr.load(os.path.join(data_root_dir, file_path), sr=target_sr)
-            mel_spectrogram = featurizer(y, return_tensors="np", sampling_rate=featurizer.sampling_rate).input_values
+            y = (y - audio_mean) / audio_std_dev
+            mel_spectrogram = featurizer(y, return_tensors="pt", sampling_rate=featurizer.sampling_rate).input_values
         except Exception as e:
             print(f"Error: {e}")
             print(f"File path: {file_path}")
             continue
-        mean_sum += np.mean(mel_spectrogram)
-        std_dev_sum += np.std(mel_spectrogram)
-        count += 1
+        means.append(torch.mean(mel_spectrogram))
+        std_devs.append(torch.std(mel_spectrogram))
 
-    mean_sum /= count
-    std_dev_sum /= count
+    mean = np.mean(means)
+    std_dev = np.mean(std_devs)
 
-    print('Number of records:', count)
+    print("Number of records:", len(means))
 
-    print(f"CSV file: {csv_path}; Mean: {mean_sum:.9f}, std. deviation: {std_dev_sum:.9f}")
+    print(f"CSV file: {csv_path}; Mean: {mean:.9f}, std. deviation: {std_dev:.9f}")
 
 
 def calculate_metrics(pred, target, threshold=0.5, no_classes=NO_CLASSES):
