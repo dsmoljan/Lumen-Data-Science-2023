@@ -34,11 +34,11 @@ class AudioLitModuleSeparateOptimizers(AudioLitModule):
         assert len(params_classifier) > 0, "No classifier parameters found, check the named parameters returned by the model."
         optimizer_base = self.hparams.optimizer_base(params=params_base)
         optimizer_classifier = self.hparams.optimizer_classifier(params=params_classifier)
-        num_steps = self.trainer.estimated_stepping_batches / self.hparams.gradient_accumulation_steps
+        num_steps = int(self.trainer.estimated_stepping_batches / self.hparams.gradient_accumulation_steps)
         if self.hparams.scheduler_base is not None:
-            scheduler_base = self.hparams.scheduler_base(optimizer=optimizer_base, num_warmup_steps=self.hparams.scheduler_warmup_percentage * num_steps, num_training_steps=num_steps)
+            scheduler_base = self.hparams.scheduler_base(optimizer=optimizer_base, num_warmup_steps=int(self.hparams.scheduler_warmup_percentage * num_steps), num_training_steps=num_steps)
         if self.hparams.scheduler_classifier is not None:
-            scheduler_classifier = self.hparams.scheduler_classifier(optimizer=optimizer_classifier, num_warmup_steps=self.hparams.scheduler_warmup_percentage * num_steps, num_training_steps=num_steps)
+            scheduler_classifier = self.hparams.scheduler_classifier(optimizer=optimizer_classifier, num_warmup_steps=int(self.hparams.scheduler_warmup_percentage * num_steps), num_training_steps=num_steps)
         if self.hparams.scheduler_base is not None and self.hparams.scheduler_classifier is not None: # both schedulers
             return [optimizer_base, optimizer_classifier], [scheduler_base, scheduler_classifier]
         elif self.hparams.scheduler_base is not None: # only base scheduler
@@ -59,8 +59,8 @@ class AudioLitModuleSeparateOptimizers(AudioLitModule):
                 self.clip_gradients(optimizer, gradient_clip_val=1.0, gradient_clip_algorithm='norm')
         if (batch_idx + 1) % self.hparams.gradient_accumulation_steps == 0:
             optimizers, lr_schedulers = self.optimizers(), self.lr_schedulers()
-            for optimizer in optimizers:
+            for optimizer, lr_scheduler in zip(optimizers, lr_schedulers):
                 optimizer.step()
-                optimizer.zero_grad()
-            for lr_scheduler in lr_schedulers:
                 lr_scheduler.step()
+                optimizer.zero_grad()
+        return loss
