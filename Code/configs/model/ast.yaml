@@ -5,12 +5,13 @@ net:
   no_classes: ${data.general.no_classes}
   mean: ${data.general.log_mel_spectrogram_mean}
   std: ${data.general.log_mel_spectrogram_std}
+  max_length: 100
   model_name_or_path: "MIT/ast-finetuned-audioset-10-10-0.4593"
 
 optimizer_base:
   _target_: torch.optim.Adam
   _partial_: true
-  lr: 1e-5
+  lr: 2e-5
   weight_decay: 1e-5
 
 optimizer_classifier:

@@ -7,9 +7,11 @@ train_dataloader:
 
 val_dataloader:
   batch_size: 1
+  collate_fn: src.data_utils.data_utils.collate_fn_windows
 
 test_dataloader:
   batch_size: 1
+  collate_fn: src.data_utils.data_utils.collate_fn_windows
 
 train_dataset:
   sr: 16000
@@ -29,20 +31,10 @@ test_dataset:
   use_window: true
   window_size: 1
 
-train_augmentations:
-  audio:
-    active: False
-    add_noise:
-      active: False
-    pitch_shift:
-      active: False
-    time_shift:
-      active: False
-
 general:
   # IRMAS
-  log_mel_spectrogram_mean: 0.326588890
-  log_mel_spectrogram_std: 0.287198263
+  log_mel_spectrogram_mean: -4.2677393
+  log_mel_spectrogram_std: 4.5689974
   # AudioSet
   # log_mel_spectrogram_mean: -0.073369932
   # log_mel_spectrogram_std: 0.394402992
