@@ -221,7 +221,6 @@ def get_mfcc(audio_file: numpy.ndarray, sr: int, n_mfcc: int, mfcc_height: int, 
 def get_audio_features(y: numpy.ndarray, sr: int) -> torch.Tensor:
     mfcc = lr.feature.mfcc(y=y, sr=sr, n_mfcc=13)
     chroma = lr.feature.chroma_stft(y=y, sr=sr)
-    tonnetz = lr.feature.tonnetz(y=y, sr=sr)
     zcr = lr.feature.zero_crossing_rate(y=y)
     spec_cent = lr.feature.spectral_centroid(y=y, sr=sr)
     rms = lr.feature.rms(y=y)
@@ -231,7 +230,7 @@ def get_audio_features(y: numpy.ndarray, sr: int) -> torch.Tensor:
     spec_flatness = lr.feature.spectral_flatness(y=y)
     poly_features = lr.feature.poly_features(y=y, sr=sr)
 
-    features = np.vstack((mfcc, chroma, tonnetz, zcr, spec_cent, rms, spec_contrast, spec_bandwidth, spec_rolloff, spec_flatness, poly_features))
+    features = np.vstack((mfcc, chroma, zcr, spec_cent, rms, spec_contrast, spec_bandwidth, spec_rolloff, spec_flatness, poly_features))
     return torch.from_numpy(features).float()
 
 
