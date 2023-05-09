@@ -1,6 +1,8 @@
+import numpy as np
 import requests
 import streamlit as st
 import pandas as pd
+import soundfile as sf
 
 
 # TODO: zamijeni s localhost!!!
@@ -42,7 +44,14 @@ audio_file = st.file_uploader("Upload an audio file")
 
 if (audio_file is not None):
     audio_bytes = audio_file.getvalue()
-    st.audio(audio_bytes, format='audio/*')
+    # this weird way of loading files into Streamlit's audio player is due to an issue with the testing .wav files
+    # which were the only files that we couldn't play for some reason
+    # so this is a workaround, first loading the file as a numpy array through soundfile, which is the only library we managed
+    # to find that supports their format/encoding
+    # then passing the numpy array to the st.audio
+    data, samplerate = sf.read(audio_file)
+    # why transpose? read https://stackoverflow.com/questions/57137050/error-passing-wav-file-to-ipython-display
+    st.audio(data.T, sample_rate=samplerate, format='audio/wav')
 
 # Add a submit button
 if st.button("Submit"):

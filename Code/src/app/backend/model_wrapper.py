@@ -8,7 +8,8 @@ from torch import nn
 
 from preprocessing import preprocess_spectogram
 
-BASE_MODEL_CHECKPOINT = "./checkpoints/resnet_model_window_3s.pt"
+#BASE_MODEL_CHECKPOINT = "./checkpoints/resnet_model_window_3s.pt"
+BASE_MODEL_CHECKPOINT = "./checkpoints/resnet_model_dynamic_window_3s.pt"
 
 class_mappings = {"cel": 0, "cla": 1, "flu": 2, "gac": 3, "gel": 4, "org": 5, "pia": 6, "sax": 7, "tru": 8, "vio": 9,
                   "voi": 10}

@@ -30,7 +30,6 @@ def read_root():
     return {"message": "Welcome from the API"}
 
 @app.post("/api/predict")
-# ako koristis request, ne mozes i audio_file
 async def do_predict(request: Request, audio_file: UploadFile = File(...)):
     """
     Perform prediction on input data
