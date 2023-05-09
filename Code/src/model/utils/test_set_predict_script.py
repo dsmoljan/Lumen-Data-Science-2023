@@ -8,8 +8,8 @@ import requests
 from tqdm import tqdm
 
 ENDPOINT_URL = "http://localhost:8080/api/predict"
-FILE = "(02) dont kill the whale-1.wav"
 DIRECTORY = "C:/Users/dsmoljan/Desktop/Lumen natjecanje/test_dataset-20230428T085441Z-001/test_dataset"
+
 def main():
     result_dict = {}
     #ignal, sampling_rate = audiofile.read(FILE)
@@ -27,9 +27,7 @@ def main():
 
     with open("test_results.json", "w") as outfile:
         json.dump(result_dict, outfile)
-    json_object = json.dumps(result_dict)
-    #song = AudioSegment.from_wav(FILE)
-    #return response.json()
+
 
 if __name__ == "__main__":
     main()

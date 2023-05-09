@@ -3,22 +3,19 @@ import math
 import os
 
 import pandas as pd
-import numpy as np
-import librosa as lr
 import pyrootutils
-import torch
+from src.model.data_utils.data_utils import *
 from torch.utils.data import Dataset
-
-from src.model.data_utils.data_utils import augment_audio, get_mfcc, get_spectogram
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 NO_CLASSES = 11
 
 class AudioDataset(Dataset):
-    def __init__(self, data_root_path, data_mean, data_std, n_mels=128, n_mfcc=13, spec_height=None, name='train',
+    def __init__(self, data_root_path, data_mean, data_std, n_mels=128, n_mfcc=40, spec_height=None, name='train',
                  mfcc_augmentation=False, sr=44100, return_type="audio",
-                 use_window=False, window_size=None, augmentation_config=None, dynamic_sampling=False, min_sampled_files=None, max_sampled_files=None):
+                 use_window=False, window_size=None, augmentation_config=None, dynamic_sampling=False,
+                 min_sampled_files=None, max_sampled_files=None):
         super(AudioDataset, self).__init__()
         self.data_root_path = data_root_path
         self.mfcc_augmentation = mfcc_augmentation
@@ -45,7 +42,7 @@ class AudioDataset(Dataset):
                 self.spec_height = self.n_mfcc
 
         assert name in ('train', 'test', 'val')
-        assert return_type in ('audio', 'spectogram', 'mfcc')
+        assert return_type in ('audio', 'spectogram', 'mfcc', 'audio-features')
 
         if name == 'train':
             self.examples = pd.read_csv(os.path.join(self.data_root_path, 'datalists', 'train.csv'))
@@ -83,7 +80,7 @@ class AudioDataset(Dataset):
                 for i in label_list:
                     one_hot_vector[i] = 1 if one_hot_vector[i] == 0 else one_hot_vector[i]
             audio_file /= num_files
-        else:   
+        else:
             audio_file_path = os.path.join(self.data_root_path, self.examples.iloc[[index]]["file_path"].item())
             audio_file, sr = lr.load(audio_file_path, sr=self.sr)
             target_classes = self.examples.loc[[index]]["classes_id"].item()
@@ -128,16 +125,30 @@ class AudioDataset(Dataset):
             else:
                 return torch.from_numpy(audio_file).float().view(1, -1), target
 
+        if self.return_type == 'audio-features':
+            if self.use_window:
+                return [get_audio_features(audio, sr=self.sr) for audio in audio_windows], target, num_intervals
+            else:
+                return get_audio_features(audio_file, sr=self.sr), target
+
         elif self.return_type == 'mfcc':
             if self.use_window:
-                return [get_mfcc(audio, sr=self.sr, n_mfcc=self.n_mfcc, mfcc_height=self.spec_height, mfcc_width=self.spec_width, augmentation=self.augmentation_config.spectogram.active, config=self.augmentation_config) for audio in audio_windows], target, num_intervals
+                return [get_mfcc(audio, sr=self.sr, n_mfcc=self.n_mfcc, mfcc_height=self.spec_height,
+                                 mfcc_width=self.spec_width, augmentation=self.augmentation_config.spectogram.active,
+                                 config=self.augmentation_config) for audio in audio_windows], target, num_intervals
             else:
-                return get_mfcc(audio_file, sr=self.sr, n_mfcc=self.n_mfcc, mfcc_height=self.spec_height, mfcc_width=self.spec_width, augmentation=self.augmentation_config.spectogram.active, config=self.augmentation_config), target
+                return get_mfcc(audio_file, sr=self.sr, n_mfcc=self.n_mfcc, mfcc_height=self.spec_height,
+                                mfcc_width=self.spec_width, augmentation=self.augmentation_config.spectogram.active,
+                                config=self.augmentation_config), target
 
         if self.use_window:
-            return [get_spectogram(audio, sr=self.sr, n_mels=self.n_mels, spec_height=self.spec_height, spec_width=self.spec_width, augmentation=self.augmentation_config.spectogram.active, config=self.augmentation_config) for audio in audio_windows], target, num_intervals
+            return [get_spectogram(audio, sr=self.sr, n_mels=self.n_mels, spec_height=self.spec_height,
+                                   spec_width=self.spec_width, augmentation=self.augmentation_config.spectogram.active,
+                                   config=self.augmentation_config) for audio in audio_windows], target, num_intervals
         else:
-            return get_spectogram(audio_file, sr=self.sr, n_mels=self.n_mels, spec_height=self.spec_height, spec_width=self.spec_width, augmentation=self.augmentation_config.spectogram.active, config=self.augmentation_config), target
+            return get_spectogram(audio_file, sr=self.sr, n_mels=self.n_mels, spec_height=self.spec_height,
+                                  spec_width=self.spec_width, augmentation=self.augmentation_config.spectogram.active,
+                                  config=self.augmentation_config), target
 
     def __len__(self):
         if not self.dynamic_sampling:
@@ -146,4 +157,4 @@ class AudioDataset(Dataset):
             n = len(self.examples)
             # this formula ensures that only 0.1% of the files will not be sampled and the estimation is better as n increases
             # for n = 6000, the forula returns ~ 2.3*6000
-            return int(math.log(0.001, 1 - 1/n) * 1/n * 2/(self.min_sampled_files + self.max_sampled_files) * n)
+            return int(math.log(0.001, 1 - 1 / n) * 1 / n * 2 / (self.min_sampled_files + self.max_sampled_files) * n)

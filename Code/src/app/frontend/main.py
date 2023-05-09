@@ -4,8 +4,6 @@ import streamlit as st
 import pandas as pd
 import soundfile as sf
 
-
-# TODO: zamijeni s localhost!!!
 ENDPOINT_URL = "http://localhost:8080/api/predict"
 
 # defines an h1 header
@@ -25,7 +23,7 @@ hide_table_row_index = """
             </style>
             """
 
-# Inject CSS with Markdown
+# inject CSS with Markdown
 st.markdown(hide_table_row_index, unsafe_allow_html=True)
 
 def send_file_to_endpoint(audio_file):
@@ -39,7 +37,7 @@ def send_file_to_endpoint(audio_file):
     #     return response.json()
 
 
-# Add a file upload form
+# add a file upload form
 audio_file = st.file_uploader("Upload an audio file")
 
 if (audio_file is not None):
@@ -53,7 +51,7 @@ if (audio_file is not None):
     # why transpose? read https://stackoverflow.com/questions/57137050/error-passing-wav-file-to-ipython-display
     st.audio(data.T, sample_rate=samplerate, format='audio/wav')
 
-# Add a submit button
+# add a submit button
 if st.button("Submit"):
     # Make sure the user has uploaded a file
     if audio_file is not None:
@@ -61,15 +59,11 @@ if st.button("Submit"):
 
 
         response = send_file_to_endpoint(audio_file)
-        # Convert the response to a dictionary
+        # convert the response to a dictionary
         response_dict = response
-        # Create a list of the labels and values
+        # create a list of the labels and values
         labels = list(response_dict.keys())
         values = list(response_dict.values())
-        # # Create a bar chart
-        # fig, ax = plt.subplots()
-        # ax.bar(labels, values)
-        # st.pyplot(fig)
         table_data = []
         for key, value in response_dict.items():
             if value == 1:

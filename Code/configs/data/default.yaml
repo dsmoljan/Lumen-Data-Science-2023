@@ -1,5 +1,5 @@
-# ovdje definiraj sve što je moguće a da je zajedničko svim data yamlicama
-# onda ćeš imati specifične yamlice za određene slučajeve, npr. korištenje windowa tijekom treniranja, korištenje audioseta itd.
+# this config file contains configuration relating to loading and processing data
+# such as augmentation configuration, dataloader batch size, collate function used in dataloaders, dataset parameters etc.
 train_dataloader:
   batch_size: 8
   shuffle: True
@@ -9,22 +9,19 @@ train_dataloader:
 
 val_dataloader:
   batch_size: 8
-  shuffle: False
-  drop_last: True
   collate_fn: src.model.data_utils.data_utils.collate_fn_windows
 
 test_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset: ${data.test_dataset}
   batch_size: 8
-  shuffle: True
-  drop_last: True
+  collate_fn: src.model.data_utils.data_utils.collate_fn_windows
 
 train_dataset:
   _target_: src.model.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
-  data_mean: ${data.general.data_mean}
-  data_std: ${data.general.data_std}
+  data_mean: ${dataset.general.data_mean}
+  data_std: ${dataset.general.data_std}
   n_mels: 256
   name: train
   sr: 44100
@@ -36,8 +33,8 @@ train_dataset:
 val_dataset:
   _target_: src.model.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
-  data_mean: ${data.general.data_mean}
-  data_std: ${data.general.data_std}
+  data_mean: ${dataset.general.data_mean}
+  data_std: ${dataset.general.data_std}
   n_mels: 256
   name: val
   sr: 44100
@@ -50,8 +47,8 @@ val_dataset:
 test_dataset:
   _target_: src.model.data_utils.audio_dataset.AudioDataset
   data_root_path: ${paths.data_dir}
-  data_mean: ${data.general.data_mean}
-  data_std: ${data.general.data_std}
+  data_mean: ${dataset.general.data_mean}
+  data_std: ${dataset.general.data_std}
   n_mels: 256
   name: test
   sr: 44100
@@ -65,8 +62,8 @@ train_augmentations:
     active: True
     add_noise:
       active: True
-      mean: ${data.general.data_mean}
-      std: ${data.general.data_std}
+      mean: ${dataset.general.data_mean}
+      std: ${dataset.general.data_std}
       alpha: 0.005
     pitch_shift:
       active: True
@@ -90,8 +87,8 @@ test_augmentations:
     active: False
     add_noise:
       active: False
-      mean: ${data.general.data_mean}
-      std: ${data.general.data_std}
+      mean: ${dataset.general.data_mean}
+      std: ${dataset.general.data_std}
       alpha: 0.005
     pitch_shift:
       active: False
@@ -109,8 +106,3 @@ test_augmentations:
         active: False
         time_per: 10
         num_masks: 2
-
-general:
-  data_mean: -0.000404580
-  data_std: 0.108187131
-  no_classes: 11

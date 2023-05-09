@@ -1,0 +1,23 @@
+defaults:
+  - window_data.yaml
+
+train_dataloader:
+  batch_size: 1
+
+val_dataloader:
+  batch_size: 1
+
+test_dataloader:
+  batch_size: 1
+
+train_dataset:
+  sr: 16000
+  return_type: audio
+
+val_dataset:
+  sr: 16000
+  return_type: audio
+
+test_dataset:
+  sr: 16000
+  return_type: audio

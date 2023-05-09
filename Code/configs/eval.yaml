@@ -2,8 +2,9 @@
 
 defaults:
   - _self_
-  - data: audio_data.yaml
-  - model: audio_model.yaml
+  - data: default.yaml
+  - dataset: irmas.yaml
+  - model: default.yaml
   - logger: null
   - trainer: default.yaml
   - paths: default.yaml

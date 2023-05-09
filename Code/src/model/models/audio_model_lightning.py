@@ -4,20 +4,21 @@ import numpy as np
 import pyrootutils
 import pytorch_lightning as pl
 import torch
-
+from src.model.models.abstract_model import AbstractModel
 from src.model.utils.utils import calculate_metrics
 from torch import nn
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
+
 class AudioLitModule(pl.LightningModule):
-    def __init__(self, net: nn.Module,
-                 optimizer: torch.optim.Optimizer,
-                 scheduler: torch.optim.lr_scheduler,
-                 scheduler_warmup_percentage: float,
-                 no_classes: int,
-                 threshold_value: int,
-                 aggregation_function: str
+    def __init__(self, net: AbstractModel = None,
+                 optimizer: torch.optim.Optimizer = None,
+                 scheduler: torch.optim.lr_scheduler = None,
+                 scheduler_warmup_percentage: float = None,
+                 no_classes: int = 11,
+                 threshold_value: int = 0.5,
+                 aggregation_function: str = "S2",
                  ):
         super().__init__()
 
@@ -48,9 +49,7 @@ class AudioLitModule(pl.LightningModule):
 
     def training_step(self, batch: Any, batch_idx: int):
         _, _, loss = self.model_step(batch)
-
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
-        # per Ligthning module requirements, we return loss so Lightning can perform backprop and optimizer steps
         return loss
 
     def validation_step(self, batch: Any, batch_idx: int):
@@ -60,7 +59,8 @@ class AudioLitModule(pl.LightningModule):
         result_dict = calculate_metrics(np.array(self.eval_outputs_list), np.array(self.eval_targets_list))
         # logger = False as this log is only so we can use the scheduler, the metric is already logged to wandb
         # by logging the entire results dict
-        val_loss = self.eval_criterion(torch.tensor(np.array(self.eval_outputs_list)).float(), torch.tensor(np.array(self.eval_targets_list)).float())
+        val_loss = self.eval_criterion(torch.tensor(np.array(self.eval_outputs_list)).float(),
+                                       torch.tensor(np.array(self.eval_targets_list)).float())
         self.log("val_loss", val_loss, on_step=False, on_epoch=True, prog_bar=False, logger=True)
         self.log_dict(dictionary=result_dict, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.eval_targets_list.clear()
@@ -71,7 +71,7 @@ class AudioLitModule(pl.LightningModule):
 
     def eval_step(self, batch: Any):
         features, targets, lengths = batch
-        for i in range (len(features)):
+        for i in range(len(features)):
             examples = features[i][0:lengths[i]]
             target = targets[i]
             predictions = self.activation(self.forward(examples))
@@ -96,13 +96,14 @@ class AudioLitModule(pl.LightningModule):
         optimizer = self.hparams.optimizer(params=self.parameters())
         num_steps = self.trainer.estimated_stepping_batches
         if self.hparams.scheduler is not None:
-            scheduler = self.hparams.scheduler(optimizer=optimizer, num_warmup_steps=self.hparams.scheduler_warmup_percentage * num_steps,
+            scheduler = self.hparams.scheduler(optimizer=optimizer,
+                                               num_warmup_steps=self.hparams.scheduler_warmup_percentage * num_steps,
                                                num_training_steps=num_steps)
             return {
-                    "optimizer": optimizer,
-                    "lr_scheduler": {
-                        "scheduler": scheduler,
-                        "interval": "step"
-                    },
-                }
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": scheduler,
+                    "interval": "step"
+                },
+            }
         return {"optimizer": optimizer}

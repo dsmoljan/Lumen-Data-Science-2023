@@ -1,11 +1,12 @@
-from torch import nn, Tensor
 import torch.nn.functional as F
+from src.model.models.abstract_model import AbstractModel
+from torch import Tensor, nn
 
-class CNN2DMfccNet(nn.Module):
-    def __init__(self, batch_size: int, n_mfcc: int, n_mels: int, no_classes = 11):
+
+class CNN2DMfccNet(AbstractModel):
+    def __init__(self, no_classes=11):
         super().__init__()
 
-        self.input_shape = (batch_size, 1, n_mfcc, n_mels)  # batch_size, 1, 40, 256
         self.conv1 = nn.Conv2d(1, 32, kernel_size=(4, 4))  # batch_size, 32, 37, 253
         self.bn1 = nn.BatchNorm2d(32)  # batch_size, 32, 37, 253
         self.pool1 = nn.MaxPool2d(2)  # batch_size, 32, 18, 126
@@ -36,6 +37,14 @@ class CNN2DMfccNet(nn.Module):
         x = nn.Sequential(self.fc1, self.dropout1, self.relu, self.fc2)(x)
         return x
 
+    def get_cls_named_parameters(self):
+        named_parameters = []
+        for n, _ in self.fc1.named_parameters(prefix="fc1"):
+            named_parameters.append(n)
+        for n, _ in self.fc2.named_parameters(prefix="fc2"):
+            named_parameters.append(n)
+        return named_parameters
+
+
 if __name__ == "__main__":
     _ = CNN2DMfccNet()
-

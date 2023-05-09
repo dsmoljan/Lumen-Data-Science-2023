@@ -1,7 +1,7 @@
 import os
 import re
 
-#import ffmpeg
+import ffmpeg
 import librosa as lr
 import numpy as np
 import pandas as pd
@@ -17,7 +17,6 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 from sklearn.model_selection import train_test_split
 from torchmetrics.classification import MultilabelAccuracy
 
-# TODO: ovo sve dodati u hydra config!
 genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
 
 data_root_dir = "../../../../../Dataset"

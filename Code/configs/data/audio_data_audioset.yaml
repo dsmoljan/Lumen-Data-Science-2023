@@ -1,6 +1,0 @@
-defaults:
-  - audio_data.yaml
-
-general:
-  data_mean: -0.000431315
-  data_std: 0.126361664

@@ -1,3 +1,5 @@
+# this config file defines all the callbacks configuration used during training
+# to add a new callback, create its configuration in the current directory and add it to defaults
 defaults:
   - model_checkpoint.yaml
   - model_summary.yaml

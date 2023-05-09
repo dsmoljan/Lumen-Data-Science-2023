@@ -22,8 +22,11 @@ def evaluate(cfg: DictConfig):
     log.info(f"Instantiating test dataset <{cfg.data.test_dataset._target_}>")
     test_dataset: AudioDataset = hydra.utils.instantiate(cfg.data.test_dataset)
 
-    test_dataloader: DataLoader = DataLoader(test_dataset, batch_size=cfg.data.test_dataloader.batch_size, shuffle=True,
-                                             drop_last=True, collate_fn=collate_fn_windows)
+    test_collate_fn = hydra.utils.get_method(
+        cfg.data.test_dataloader.collate_fn) if cfg.data.train_dataloader.collate_fn != "None" else None
+
+    test_dataloader: DataLoader = DataLoader(test_dataset, batch_size=cfg.data.test_dataloader.batch_size, shuffle=False,
+                                            drop_last=True, collate_fn=test_collate_fn)
 
     log.info(f"Instantiating model <{cfg.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(cfg.model)

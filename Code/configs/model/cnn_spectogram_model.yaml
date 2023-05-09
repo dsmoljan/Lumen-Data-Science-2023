@@ -1,0 +1,5 @@
+defaults:
+  - default.yaml
+
+net:
+  _target_: src.model.models.components.cnn_spectogram_net.CNNSpectogramNet

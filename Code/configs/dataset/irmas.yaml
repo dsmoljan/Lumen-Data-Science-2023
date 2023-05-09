@@ -1,0 +1,7 @@
+# default values are IRMAS valurs
+general:
+  data_mean: -0.000404580
+  data_std: 0.108187131
+  log_mel_spectrogram_mean: 0.465820134
+  log_mel_spectrogram_std: 0.338545531
+  no_classes: 11
