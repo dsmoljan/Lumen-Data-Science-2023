@@ -28,7 +28,7 @@ train_dataset:
   n_mels: 256
   name: train
   sr: 44100
-  return_type: spectogram
+  return_type: audio-features
   use_window: False
   augmentation_config: ${data.train_augmentations}
   dynamic_sampling: False

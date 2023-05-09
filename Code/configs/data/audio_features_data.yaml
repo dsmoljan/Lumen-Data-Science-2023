@@ -22,19 +22,19 @@ test_dataloader:
   drop_last: True
 
 train_dataset:
-  return_type: audio
+  return_type: audio-features
   use_window: True
   window_size: 1
   dynamic_sampling: False
 
 val_dataset:
-  return_type: audio
+  return_type: audio-features
   use_window: True
   window_size: 1
   dynamic_sampling: False
 
 test_dataset:
-  return_type: audio
+  return_type: audio-features
   use_window: True
   window_size: 1
 

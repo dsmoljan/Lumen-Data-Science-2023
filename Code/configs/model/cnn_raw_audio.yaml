@@ -1,0 +1,18 @@
+defaults:
+  - default.yaml
+
+net:
+  _target_: src.models.components.cnn_audio_net.CNN1DAudioNet
+  no_classes: ${data.general.no_classes}
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 1e-3
+  weight_decay: 5e-4
+
+scheduler:
+  _target_: transformers.get_polynomial_decay_schedule_with_warmup
+  _partial_: true
+  lr_end: 1e-5
+  power: 0.7

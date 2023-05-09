@@ -1,0 +1,26 @@
+defaults:
+  - default.yaml
+
+train_dataloader:
+  # if we don't want to use a custom collate fn, set this property to None
+  collate_fn: src.data_utils.data_utils.collate_fn_windows_stack
+
+val_dataloader:
+  collate_fn: src.data_utils.data_utils.collate_fn_windows
+
+train_dataset:
+  use_window: True
+  window_size: 1
+
+val_dataset:
+  use_window: True
+  window_size: 1
+
+test_dataset:
+  use_window: True
+  window_size: 1
+
+general:
+  # irmas
+  data_mean: -0.000404580
+  data_std: 0.108187131

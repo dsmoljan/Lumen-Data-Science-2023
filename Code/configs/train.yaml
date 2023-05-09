@@ -4,10 +4,10 @@
 # order of defaults determines the order in which configs override each other
 defaults:
   - _self_
-  - data: default.yaml
-  - model: default.yaml
+  - data: audio_features_data.yaml
+  - model: cnn_audio_features.yaml
   - callbacks: default.yaml
-  - logger: wandb.yaml
+  - logger: tensorboard.yaml
   - trainer: default.yaml
   - paths: default.yaml
   - extras: default.yaml
