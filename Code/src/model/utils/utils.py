@@ -41,8 +41,6 @@ def walk_directory_train_data(root_dir):
         for file_name in os.listdir(class_folder_path):
             file_path = os.path.join(class_folder_path, file_name)
 
-            #abs_file_path = os.path.abspath(file_path)
-
             audio_length = lr.get_duration(filename=file_path)
             genre = None
             drums = None
@@ -90,8 +88,6 @@ def walk_directory_test_data(root_dir):
 
         classes_id = [class_mappings[c] for c in classes]
 
-        #abs_file_path = os.path.abspath(wav_file_path)
-
         audio_length = lr.get_duration(filename=wav_file_path)
 
         file_info.append({
@@ -108,7 +104,6 @@ def test_val_split():
     # Load the data from the .csv file
     data = pd.read_csv(os.path.join(datalists_dir, 'test_original.csv'))
     test_data, val_data = train_test_split(data, test_size=VAL_PERCENTAGE)
-    #test_data = test_data.drop('Unnamed: 0', axis=1)
     test_data.to_csv(os.path.join(datalists_dir, 'test.csv'), index=False)
     val_data.to_csv(os.path.join(datalists_dir, 'val.csv'), index=False)
 
@@ -144,27 +139,6 @@ def calculate_mean_and_std_deviation(csv_path, target_sr):
     print('Number of records:', count)
 
     print(f"CSV file: {csv_path}; Mean: {mean_sum:.9f}, std. deviation: {std_dev_sum:.9f}")
-
-def calculate_metrics(pred, target, threshold=0.5, no_classes=NO_CLASSES):
-    pred = np.array(pred > threshold, dtype=int)
-    micro_accuracy = MultilabelAccuracy(no_classes, threshold, average='micro')
-    macro_accuracy = MultilabelAccuracy(no_classes, threshold, average='macro')
-
-    return {
-        'micro_accuracy': micro_accuracy(torch.from_numpy(pred), torch.from_numpy(target)),
-        'macro_accuracy': macro_accuracy(torch.from_numpy(pred), torch.from_numpy(target)),
-        'exact_match_accuracy': accuracy_score(target, pred),
-        'micro_precision': precision_score(target, pred, average='micro', zero_division=0),
-        'macro_precision': precision_score(target, pred, average='macro', zero_division=0),
-        'macro_recall': recall_score(target, pred, average='macro', zero_division=0),
-        'macro_f1': f1_score(target, pred, average='macro', zero_division=0),
-        'micro_recall': recall_score(target, pred, average='micro', zero_division=0),
-        'micro_f1': f1_score(target, pred, average='micro', zero_division=0),
-        'samples_precision': precision_score(target, pred, average='samples', zero_division=0),
-        'samples_recall': recall_score(target, pred, average='samples', zero_division=0),
-        'samples_f1': f1_score(target, pred, average='samples', zero_division=0),
-        'hamming_score': 1-hamming_loss(target, pred)
-    }
 
 def print_networks(nets, names):
     print('------------Number of Parameters---------------')

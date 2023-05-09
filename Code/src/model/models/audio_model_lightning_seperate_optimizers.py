@@ -6,6 +6,11 @@ from src.model.models.audio_model_lightning import AudioLitModule
 
 
 class AudioLitModuleSeparateOptimizers(AudioLitModule):
+    """
+    An implementation of the AbstractModel class which allows the trainig loop to work with two
+     seperate optimizers and schedulers. Benefical for large pretrained models whose pretrained-layers require
+     updates with a small learning rate, while the head of the model requires a large learning rate.
+    """
     def __init__(self, net: AbstractModel = None,
                  optimizer_base: torch.optim.Optimizer = None,
                  optimizer_classifier: torch.optim.Optimizer = None,

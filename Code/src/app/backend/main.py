@@ -41,9 +41,8 @@ async def do_predict(request: Request, audio_file: UploadFile = File(...)):
     # Load the audio file from the request body
     contents = await audio_file.read()
     audio_signal, sr = lr.load(BytesIO(contents), sr=None, mono=True)
-    # TODO: premjestiti u preprocessing
     if sr != 44100:
-        audio_signal = lr.resample(audio_signal, sr, 16000)
+        audio_signal = lr.resample(audio_signal, sr, 44100)
         sr = 44100
 
     # https://stackoverflow.com/questions/71298179/fastapi-how-to-get-app-instance-inside-a-router

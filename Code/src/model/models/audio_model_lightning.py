@@ -5,13 +5,19 @@ import pyrootutils
 import pytorch_lightning as pl
 import torch
 from src.model.models.abstract_model import AbstractModel
-from src.model.utils.utils import calculate_metrics
+from src.model.utils.testing_utils import calculate_metrics
 from torch import nn
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 
 class AudioLitModule(pl.LightningModule):
+    """
+    Base implementation of the AbstractModel class. Contains all the code common for all models,
+    such as training step, optimizer config, evaluation loop etc. The specific architecture to be used
+    is taken as a parameter. Does NOT implement get_cls_named_parameters method from AbstractModel, as
+    it does not support working with multiple optimizers and schedulers.
+    """
     def __init__(self, net: AbstractModel = None,
                  optimizer: torch.optim.Optimizer = None,
                  scheduler: torch.optim.lr_scheduler = None,
