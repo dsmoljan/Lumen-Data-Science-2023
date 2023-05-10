@@ -312,4 +312,4 @@ dependencies:
       - streamlit-awesome-table==0.1.0
       - torchaudio==2.0.0
       - torchvision==0.15.0
-prefix: C:\Users\dsmoljan\anaconda3\envs\lumen
+prefix: C:\Users\anonymous\anaconda3\envs\lumen

@@ -1,4 +1,4 @@
-FROM python:3.10.1-slim
+FROM anibali/pytorch:2.0.0-cuda11.8
 
 WORKDIR /app
 COPY requirements.txt .
