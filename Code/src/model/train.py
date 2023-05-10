@@ -1,24 +1,17 @@
 from typing import List
 
 import hydra
-import pytorch_lightning as pl
 import pyrootutils
+import pytorch_lightning as pl
 import torch
-from pytorch_lightning import LightningModule, Callback, Trainer
+from omegaconf import DictConfig
+from pytorch_lightning import Callback, LightningModule, Trainer
 from pytorch_lightning.loggers import Logger
+from src.model.data_utils.audio_dataset import AudioDataset
+from src.model.utils import instantiators, logging_utils, utils
 from torch.utils.data import DataLoader
 
-from src.model.data_utils.audio_dataset import AudioDataset
-
-from omegaconf import DictConfig
-
-from src.model.utils import instantiators, logging_utils
-from src.model.utils import utils
-
-# jedan siguran način za pokrenuti ovo
-# pozicioniraš se u direktorij iznad src, te pokreneš "python -m src.train"
-# zasad to radi, a čini se da ima neki library pyrootutils koji koriste u onom example projektu, pa kasnije možeš
-# probati preko njega
+# position yourself in the directory above src, and run "python -m src.train"
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
@@ -26,6 +19,12 @@ log = utils.get_pylogger(__name__)
 
 
 def train(cfg: DictConfig):
+    """
+    Main training function.
+
+    Args:
+        cfg (DictConfig): configuration object from Hydra
+    """
     if cfg.get("seed"):
         pl.seed_everything(cfg.seed, workers=True)
 

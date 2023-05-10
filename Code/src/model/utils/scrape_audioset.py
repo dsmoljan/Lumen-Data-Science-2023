@@ -34,6 +34,16 @@ audioset_id_to_class = {
 MAX_AUDIOSET_NUM_FILES_PER_CLASS = 2000
 
 def download_mp3_from_ytid(ytid, start_second, end_second, output_dir='./'):
+    """
+    Args:
+        ytid: youtube id \\
+        start_second: start second of the audio \\
+        end_second: end second of the audio \\
+        output_dir: output directory
+
+    Returns:
+        str: path to the downloaded mp3 file
+    """
     link = "https://www.youtube.com/watch?v=" + ytid
     yt = YouTube(link)
 
@@ -63,6 +73,18 @@ def download_mp3_from_ytid(ytid, start_second, end_second, output_dir='./'):
         return None
 
 def download_audioset_yt_data(csv_file_data, scraped_file_path, output_dir='./', continue_from=None):
+    """
+    Scrape the AudioSet dataset and download the mp3 files from YouTube.
+
+    Args:
+        csv_file_data: path to the csv file containing the AudioSet data \\
+        scraped_file_path: path to the csv file containing the scraped data \\
+        output_dir: output directory \\
+        continue_from: continue from a specific row in the csv file
+
+    Returns:
+        None
+    """
     #df_class_label_indices = pd.read_csv(csv_file_class_label_indices)
     #class_label_indices = df_class_label_indices.set_index('mid').T.to_dict('records')[0]  # format: {'/m/09x0r': 'Speech'}
     ytids = set()

@@ -4,6 +4,12 @@ from torch import Tensor, nn
 
 
 class CNN2DMfccNet(AbstractModel):
+    """
+    2-D CNN model on MFCC features.
+
+    Args:
+        no_classes (int): Number of classes in the dataset.
+    """
     def __init__(self, no_classes=11):
         super().__init__()
 
@@ -26,6 +32,13 @@ class CNN2DMfccNet(AbstractModel):
         self.relu = nn.ReLU()
 
     def forward(self, x: Tensor):
+        """
+        Args:
+            x (torch.Tensor): Input tensor of shape (batch_size, 1, 40, 256).
+
+        Returns:
+            torch.Tensor: Output tensor (logits) of shape (batch_size, no_classes).
+        """
         x = nn.Sequential(
             self.conv1, self.bn1, self.relu, self.pool1,
             self.conv2, self.bn2, self.relu, self.pool2,
@@ -38,6 +51,10 @@ class CNN2DMfccNet(AbstractModel):
         return x
 
     def get_cls_named_parameters(self):
+        """
+        Returns:
+            list: List of tuples of the form (name, parameter) for the classifier.
+        """
         named_parameters = []
         for n, _ in self.fc1.named_parameters(prefix="fc1"):
             named_parameters.append(n)

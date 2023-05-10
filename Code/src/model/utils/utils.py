@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -7,15 +8,17 @@ import numpy as np
 import pandas as pd
 import soundfile as sf
 import torch
-from sklearn.metrics import hamming_loss
-from tqdm import tqdm
-
-import logging
-
 from pytorch_lightning.utilities import rank_zero_only
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    hamming_loss,
+    precision_score,
+    recall_score,
+)
 from sklearn.model_selection import train_test_split
 from torchmetrics.classification import MultilabelAccuracy
+from tqdm import tqdm
 
 genres = ["[cou_fol]", "[cla]", "[pop_roc]", "[lat_sou]", "[jaz_blu]"]
 
@@ -33,6 +36,9 @@ VAL_PERCENTAGE = 0.3
 NO_CLASSES = 11
 
 def walk_directory_train_data(root_dir):
+    """
+    Walks the directory and returns a pandas data frame with the file information.
+    """
     file_info = []
     for class_folder in os.listdir(root_dir):
         class_folder_path = os.path.join(root_dir, class_folder)
@@ -67,6 +73,9 @@ def walk_directory_train_data(root_dir):
 
 
 def walk_directory_test_data(root_dir):
+    """
+    Walks the directory and returns a pandas data frame with the file information.
+    """
     file_info = []
     for file in os.listdir(root_dir):
         file_path = os.path.join(root_dir, file)
@@ -101,6 +110,9 @@ def walk_directory_test_data(root_dir):
     return pd.DataFrame(file_info)
 
 def test_val_split():
+    """
+    Splits the test data into test and validation data.
+    """
     # Load the data from the .csv file
     data = pd.read_csv(os.path.join(datalists_dir, 'test_original.csv'))
     test_data, val_data = train_test_split(data, test_size=VAL_PERCENTAGE)
@@ -114,6 +126,9 @@ def test_val_split():
 #Number of records: 2874
 #Split: test; Mean: -0.000190258, std. deviation: 0.131417455
 def calculate_mean_and_std_deviation(csv_path, target_sr):
+    """
+    Calculates the mean and standard deviation of the audio files in the csv file.
+    """
     df = pd.read_csv(csv_path)
     df_dict = df.to_dict('records')
     mean_sum = 0
@@ -141,6 +156,9 @@ def calculate_mean_and_std_deviation(csv_path, target_sr):
     print(f"CSV file: {csv_path}; Mean: {mean_sum:.9f}, std. deviation: {std_dev_sum:.9f}")
 
 def print_networks(nets, names):
+    """
+    Prints the number of parameters of the networks.
+    """
     print('------------Number of Parameters---------------')
     i=0
     for net in nets:
@@ -153,11 +171,17 @@ def print_networks(nets, names):
 
 # To save the checkpoint
 def save_checkpoint(state, save_path):
+    """
+    Saves the checkpoint using `torch.save()`.
+    """
     torch.save(state, save_path)
 
 
 # To load the checkpoint
 def load_checkpoint(ckpt_path, map_location='cpu'):
+    """
+    Loads the checkpoint using `torch.load()`.
+    """
     ckpt = torch.load(ckpt_path, map_location=map_location)
     print(' [*] Loading checkpoint from %s succeed!' % ckpt_path)
     return ckpt
@@ -176,12 +200,34 @@ def get_pylogger(name=__name__) -> logging.Logger:
     return logger
 
 def train_val_test_split(data, train_percentage=0.7, val_percentage=0.1, test_percentage=0.2, seed=42):
+    """
+    Splits the data into train, val and test data.
+    
+    Args:
+        data (pd.DataFrame): The data to split. \\
+        train_percentage (float): The percentage of the data to use for training. \\
+        val_percentage (float): The percentage of the data to use for validation. \\
+        test_percentage (float): The percentage of the data to use for testing. \\
+        seed (int): The seed to use for the random number generator.
+    """
     assert train_percentage + val_percentage + test_percentage == 1, "Train, val and test percentages must sum to 1"
     train_data, test_data = train_test_split(data, test_size=test_percentage, random_state=seed)
     train_data, val_data = train_test_split(train_data, test_size=val_percentage / (train_percentage + val_percentage), random_state=seed)
     return train_data, val_data, test_data
 
 def split_dataset(csv_path, dst_path, train_percentage=0.7, val_percentage=0.1, test_percentage=0.2, seed=42, columns_to_keep=["file_path", "classes_id"]):
+    """
+    Splits the dataset into train, val and test data and saves them to the destination path.
+
+    Args:
+        csv_path (str): The path to the csv file containing the dataset. \\
+        dst_path (str): The path to the directory where the train, val and test csv files will be saved. \\
+        train_percentage (float): The percentage of the data to use for training. \\
+        val_percentage (float): The percentage of the data to use for validation. \\
+        test_percentage (float): The percentage of the data to use for testing. \\
+        seed (int): The seed to use for the random number generator. \\
+        columns_to_keep (list): The columns to keep in the csv files.
+    """
     data = pd.read_csv(csv_path, usecols=columns_to_keep)
     train_data, val_data, test_data = train_val_test_split(data, train_percentage, val_percentage, test_percentage, seed)
     train_data.to_csv(os.path.join(dst_path, "train.csv"), index=False)
@@ -189,6 +235,13 @@ def split_dataset(csv_path, dst_path, train_percentage=0.7, val_percentage=0.1, 
     test_data.to_csv(os.path.join(dst_path, "test.csv"), index=False)
 
 def change_mp3_to_wav(csv_file, dst_path):
+    """
+    Changes the mp3 files to wav files and saves them to the destination path.
+
+    Args:
+        csv_file (str): The path to the csv file containing the dataset. \\
+        dst_path (str): The path to the directory where the wav files will be saved.
+    """
     new_df_dict = {"file_path": [], "classes_id": [], "classes": [], "YTID": [], "start_second": [], "end_second": [], "positive_labels": []}
     df = pd.read_csv(csv_file)
     df_dict = df.to_dict('records')
@@ -221,6 +274,15 @@ def change_mp3_to_wav(csv_file, dst_path):
 
 
 def align_audio_lengths(csv_file, sr=44100, audio_length=10, threshold_in_seconds=0.5):
+    """
+    Aligns the audio lengths to the expected length.
+
+    Args:
+        csv_file (str): The path to the csv file containing the dataset. \\
+        sr (int): The sampling rate of the audio files. \\
+        audio_length (int): The desired length of the audio files in seconds. \\
+        threshold_in_seconds (float): The threshold in seconds to use. Files deviating more than the threshold will be DELETED!!
+    """
     df = pd.read_csv(csv_file)
     dictionary = df.to_dict(orient="records")
     # new dictionary to store the new data

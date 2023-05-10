@@ -1,20 +1,20 @@
 # this config file contains configuration relating to loading and processing data
 # such as augmentation configuration, dataloader batch size, collate function used in dataloaders, dataset parameters etc.
 train_dataloader:
-  batch_size: 8
+  batch_size: 16
   shuffle: True
   drop_last: True
   # if we don't want to use a custom collate fn, set this property to None
   collate_fn: None
 
 val_dataloader:
-  batch_size: 8
+  batch_size: 16
   collate_fn: src.model.data_utils.data_utils.collate_fn_windows
 
 test_dataloader:
   _target_: torch.utils.data.DataLoader
   dataset: ${data.test_dataset}
-  batch_size: 8
+  batch_size: 16
   collate_fn: src.model.data_utils.data_utils.collate_fn_windows
 
 train_dataset:

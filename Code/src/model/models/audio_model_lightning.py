@@ -17,6 +17,15 @@ class AudioLitModule(pl.LightningModule):
     such as training step, optimizer config, evaluation loop etc. The specific architecture to be used
     is taken as a parameter. Does NOT implement get_cls_named_parameters method from AbstractModel, as
     it does not support working with multiple optimizers and schedulers.
+
+    Args:
+        net (AbstractModel): Model component. \\
+        optimizer (torch.optim.Optimizer): Optimizer. \\
+        scheduler (torch.optim.lr_scheduler): Scheduler. \\
+        scheduler_warmup_percentage (float): Percentage of the total number of steps to be used for the scheduler warmup. \\
+        no_classes (int): Number of classes in the dataset. \\
+        threshold_value (int): Threshold value for chossing the positive labels. \\
+        aggregation_function (str): Aggregation function to be used for the predictions.
     """
     def __init__(self, net: AbstractModel = None,
                  optimizer: torch.optim.Optimizer = None,

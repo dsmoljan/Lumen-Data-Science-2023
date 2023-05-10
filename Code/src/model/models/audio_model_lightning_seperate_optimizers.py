@@ -10,6 +10,19 @@ class AudioLitModuleSeparateOptimizers(AudioLitModule):
     An implementation of the AbstractModel class which allows the trainig loop to work with two
      seperate optimizers and schedulers. Benefical for large pretrained models whose pretrained-layers require
      updates with a small learning rate, while the head of the model requires a large learning rate.
+
+    Args:
+        net (AbstractModel): Model component. \\
+        optimizer_base (torch.optim.Optimizer): Optimizer for all the parameters except the classifier. \\
+        optimizer_classifier (torch.optim.Optimizer): Optimizer for the classifier. \\
+        scheduler_base (torch.optim.lr_scheduler): Scheduler for all the parameters except the classifier. \\
+        scheduler_classifier (torch.optim.lr_scheduler): Scheduler for the classifier. \\
+        scheduler_warmup_percentage (float): Percentage of the total number of steps to be used for the scheduler warmup. \\
+        no_classes (int): Number of classes in the dataset. \\
+        threshold_value (int): Threshold value for chossing the positive labels. \\
+        aggregation_function (str): Aggregation function to be used for the predictions. \\
+        gradient_accumulation_steps (int): Number of steps to accumulate gradients before backpropagation. \\
+        apply_gradient_clipping (bool): Whether to apply gradient clipping or not.
     """
     def __init__(self, net: AbstractModel = None,
                  optimizer_base: torch.optim.Optimizer = None,

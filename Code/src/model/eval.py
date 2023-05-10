@@ -3,20 +3,25 @@ from typing import List
 import hydra
 import pyrootutils
 from omegaconf import DictConfig
-from pytorch_lightning import LightningModule, Trainer, Callback
-from torch.utils.data import DataLoader
-
+from pytorch_lightning import Callback, LightningModule, Trainer
+from pytorch_lightning.loggers import Logger
+from src.model import utils
 from src.model.data_utils.audio_dataset import AudioDataset
 from src.model.data_utils.data_utils import collate_fn_windows
 from src.model.utils import instantiators
-from src.model import utils
-from pytorch_lightning.loggers import Logger
+from torch.utils.data import DataLoader
 
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 log = utils.get_pylogger(__name__)
 
 def evaluate(cfg: DictConfig):
+    """
+    Main evaluating function.
+    
+    Args:
+        cfg (DictConfig): configuration object from Hydra
+    """
     assert cfg.ckpt_path
 
     log.info(f"Instantiating test dataset <{cfg.data.test_dataset._target_}>")

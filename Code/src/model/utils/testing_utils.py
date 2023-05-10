@@ -1,13 +1,29 @@
 import numpy as np
 import torch
-from sklearn.metrics import hamming_loss
-
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    hamming_loss,
+    precision_score,
+    recall_score,
+)
 from torchmetrics.classification import MultilabelAccuracy
 
 NO_CLASSES = 11
 
 def calculate_metrics(pred, target, threshold=0.5, no_classes=NO_CLASSES):
+    """
+    Calculate multi-label classification metrics.
+
+    Args:
+        pred (np.array): Predictions. \\
+        target (np.array): Targets. \\
+        threshold (float): Threshold for prediction. \\
+        no_classes (int): Number of classes. \\
+        
+    Returns:
+        dict: Dictionary with the metrics.
+    """
     pred = np.array(pred > threshold, dtype=int)
     micro_accuracy = MultilabelAccuracy(no_classes, threshold, average='micro')
     macro_accuracy = MultilabelAccuracy(no_classes, threshold, average='macro')

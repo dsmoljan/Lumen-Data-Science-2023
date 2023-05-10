@@ -1,11 +1,16 @@
 import torch
 import torch.nn.functional as F
-from torch import Tensor, nn
 from src.model.models.abstract_model import AbstractModel
-
+from torch import Tensor, nn
 
 
 class CNN1DAudioFeaturesNet(AbstractModel):
+    """
+    1-D CNN model on audio features. Each audio feature is passed as a seperate channel.
+
+    Args:
+        no_classes (int): Number of classes in the dataset.
+    """
     def __init__(self, no_classes):
         super().__init__()
 
@@ -33,6 +38,13 @@ class CNN1DAudioFeaturesNet(AbstractModel):
         self.relu = nn.ReLU()
 
     def forward(self, x: Tensor):
+        """
+        Args:
+            x (Tensor): Input tensor of shape (batch_size, 40, 87).
+
+        Returns:
+            Tensor: Output tensor (logits) of shape (batch_size, `no_classes`).
+        """
         x = nn.Sequential(
             self.conv1, self.relu, self.bn1, self.pool1,
             self.conv2, self.relu, self.bn2, self.pool2,
@@ -46,6 +58,10 @@ class CNN1DAudioFeaturesNet(AbstractModel):
         return x
 
     def get_cls_named_parameters(self):
+        """
+        Returns:
+            List[str]: List of named parameters of the classifier.
+        """
         named_parameters = []
         for n, _ in self.fc1.named_parameters(prefix="fc1"):
             named_parameters.append(n)

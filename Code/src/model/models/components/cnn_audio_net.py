@@ -5,6 +5,12 @@ from torch import Tensor, nn
 
 
 class CNN1DAudioNet(AbstractModel):
+    """
+    1-D CNN model on raw audio.
+
+    Args:
+        no_classes (int): Number of classes in the dataset.
+    """
     def __init__(self, no_classes: 11):
         super().__init__()
 
@@ -35,6 +41,13 @@ class CNN1DAudioNet(AbstractModel):
         self.relu = nn.ReLU()
 
     def forward(self, x: Tensor):
+        """
+        Args:
+            x (Tensor): Input tensor of shape (batch_size, 1, 44100).
+
+        Returns:
+            Tensor: Output tensor (logits) of shape (batch_size, no_classes).
+        """
         x = nn.Sequential(
             self.conv1, self.relu, self.bn1, self.pool1,
             self.conv2, self.relu, self.bn2, self.pool2,
@@ -50,6 +63,10 @@ class CNN1DAudioNet(AbstractModel):
         return x
 
     def get_cls_named_parameters(self):
+        """
+        Returns:
+            list: List of named parameters of the classifier.
+        """
         named_parameters = []
         for n, _ in self.fc1.named_parameters(prefix="fc1"):
             named_parameters.append(n)
