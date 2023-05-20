@@ -1,0 +1,52 @@
+\newchapter{Business Understanding}{ch:business-understanding}
+
+It is often said that the most important asset of the 21st century is data. Collecting, analyzing, and selling data has become the core business model of many companies, and many others have earned billions in profit by taking advantage of the various insights data can provide. However, when thinking about the most common types of data in our everyday lives, most of us think about data in text or image form, such as social media posts we write, pictures we take, or videos we capture. It is no surprise that the majority of research tends to focus on applications in computer vision or natural language processing. However, one type of data is perhaps often overlooked, even though its presence in our lives is just as important -- audio. Ever since the appearance of the first audio recorders in the late 19th century, sound has become one of the most important ways we store and experience information. From music albums and phone calls to podcasts and radio, audio captures the richness and nuance of our world in a unique and powerful manner. Therefore, it makes perfect sense to give audio the focus it deserves in the data science world.
+
+When it comes to extracting data from audio, there are a lot of different audio-related tasks to choose from -- such as speech-to-text, sound generation or even uses in medical audio analysis. However, with the rise of streaming services such as Spotify, Deezer, and Apple Music, one area of audio analysis has gained more and more prominence -- information extraction from music. Knowing what instruments are playing in any given song, being able to detect the presence of vocals, and understanding the overall structure and dynamics of the music is the crucial first step in many of the algorithms used by leading streaming services to enhance their user experience and increase the amount of time their users spend listening.
+
+This provides an excellent opportunity to develop solutions for instrument and voice detection in audio files, such as the one we present in our work.
+
+\section{Challenges}
+
+Even though today's computers are more powerful than ever before, it is widely known they have trouble with many tasks humans find easy -- for example detecting objects in images, extracting information from text, or knowing the difference between a pedestrian and a traffic light in a video. The task of instrument recognition in audio files, however, can prove to be challenging even for humans -- although you may easily recognize the sound of a single electric guitar in a rock song solo, or the human singing voice in an opera aria, consistently recognizing all instruments that are playing in a set of songs can prove to be a challenging task for all but the most experienced musicians. Add to that the many complexities of audio files, such as high entropy or noise, and it is no surprise this is a very challenging task for computers to accomplish.
+
+There are a few reasons audio files are generally harder to process and analyze compared to, let's say, image and text files. For a start, audio signals are of temporal nature, with their features changing continuously over time. This can add a high degree of variability to a single audio recording, making its analysis more difficult, especially compared to static images or text of fixed length. Furthermore,
+audio signals are highly prone to variability and noise, especially when audio is not recorded in studio conditions. Dealing with this noise without reducing the quality of the original audio can be challenging. Finally, audio files lack an explicit or well-defined structure, compared to, for example, text, which often has a well-defined syntactic and semantic structure that makes analysis easier.
+
+Instrument recognition in audio files also introduces its own challenges. One of these challenges lies in the fact that there is rarely a single instrument present in an audio file; most often multiple instruments come together to create a single song. And while this creates a new and wonderful sound for the listener, it creates nothing but a headache for an automatic instrument recognizer, as overlapping instrument sounds interfere with each other and make it harder to isolate and identify specific instruments. Furthermore, there is often a degree of variability between genres; the same instrument played in songs of one genre often sounds somewhat different when playing a song of a different genre. And while for humans discerning this difference usually is not a problem, the added variability is an issue for computers. Finally, there exist hundreds of different instruments, many of them sounding alike. This makes recognizing all possible instruments that could appear in a song virtually impossible, so solutions in this area usually focus on recognizing a small number of instruments.
+
+All of these challenges usually lead to the need for complex solutions and algorithms to tackle this problem. In recent years, deep-learning approaches have stood out as the most promising solution for this problem, and this is the main approach we also choose to take in our work.
+\section{Possible applications}
+
+There are many useful applications for an instrument-recognition system. One previously mentioned application is a starting point for various algorithms used by different streaming services. For example, an algorithm that suggests new songs to the users of the streaming service would find the information about instruments present in a song to be useful, as it could use that information to match profiles of users with similar tastes based on the instruments they most often listen to; or it could use the information as a starting point in building a genre-classification algorithm. It could also enhance search; allowing users to search and filter songs by different instruments present in songs.
+
+Of course, there a plenty of other uses for such a system that go beyond streaming services. Such a system could aid music producers and artists when editing their songs, helping them isolate specific parts of the song containing only a certain instrument or voice. It could also help in creating and indexing a library of audio samples, which could then be easily searched by artists wanting to use a specific instrument sample in their new song. Finally, various applications for teaching instruments that already exist, such as Simply Piano\footnoteurlwithoutheader{https://www.hellosimply.com/} \space \space or Tonestro\footnoteurlwithoutheader{https://www.tonestro.com/} \space \space could benefit from a robust system capable of detecting the specific instrument(s) these application teach, especially in the presence of multiple different instruments.
+
+\section{Existing approaches}
+
+A number of different methods for instrument detection already exist. These methods could broadly be split into two categories: traditional approaches, and machine-learning oriented approaches.
+
+\subsection{Traditional approaches}
+
+Under traditional approaches, we consider all algorithms which do not rely on machine learning for any part of their predictions. One example of such an approach would be \textbf{template matching}, in which a series of filters is created, each corresponding to a pitch of a certain instrument. Then, the input signal is passed through each filter and the correlation between the original and filtered signal is calculated. Based on this value, a specific source for the input signal is determined. An example of this approach can be found in\cite{kashinoetal}. Source separation is another method, in which the original audio signal is decomposed into its constituting signals, ideally one signal per instrument. These split signals can then be classified using a different algorithm.
+
+Even though methods for instrument recognition without using machine learning do exist and have been used in the past, in the last decade, machine learning methods, especially deep learning have long surpassed traditional approaches.
+
+\subsection{Machine learning approaches}
+
+Most of the approaches for instrument recognition nowadays feature some kind of machine learning, usually deep neural networks which are, due to their large capacity especially suited for tasks usually too difficult for computers and traditional algorithms. There are too many different approaches using machine learning to count, but almost all of them follow a similar idea: 
+
+\begin{enumerate}
+  \item Extract features from the input audio signal.
+  \item Use a fully-connected layer (or layers) to make the final decision based on the extracted features
+\end{enumerate}
+
+Different methods and architectures could be used to perform either of these steps; for example, a CNN, ViT or even a simple fully connected layer could be used to extract audio features from the input signal, and fully connected layers of various sizes and architectures could be used to make the final prediction. It is impossible to highlight any specific approach, as the sheer amount of papers published on a daily basis makes this impossible. However, some examples include:
+
+\begin{enumerate}
+  \item Linear regression, SVM and XGBoost models trained on Mel-frequency-spectral-coefficients features extracted from raw audio \cite{Racharla_2020} 
+  \item A transformed-based ensemble model trained on additional data created by WaveGAN \cite{lekshmietal}
+  \item A CNN trained on spectrogram features \cite{hanetal_2016}
+\end{enumerate}
+
+Of course, these approaches highlight only a small fraction of all research, with new papers and approaches published almost on a daily basis.

@@ -1,0 +1,207 @@
+\newchapter{Modeling}{ch:modeling}
+\label{ch:modeling}
+
+An overview of the models we've used in given in Table~\ref{tab:models-overview}. We've trained some of the models from scratch and used some pre-trained ones as well. The models trained from scratch were not expected to perform better than the pre-trained once. Instead, they were used to show the effectiveness of specific features and approaches, e.g. 1d vs 2d convolution. 
+
+\EQbce
+
+The loss function, which was the same for all the models, was the binary cross-entropy (BCE) loss, whose loss formulation is given in Eq.~\ref{eq:bce}. $N$ denotes the batch size. Mean reduction was applied over the batch size. We used BCE loss instead of the CE loss because we have a multi-label problem. That means that each example can be labeled with multiple labels. CE loss is suitable for multi-class problems, where we have multiple class, but only one label can be positive.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l c c r}
+Model & Architecture & Pre-trained & Num. params.   \\ \hline
+Raw audio 1-D CNN & CNN & No & 180 K                      \\
+MFCC 2-D CNN & CNN & No & 879 K                      \\
+Audio features 1-D CNN & CNN & No & 114 K                      \\
+ResNet50 & CNN & Yes & 23.5 M                     \\
+AST & Transformer & Yes & 86.2 M                                             
+\end{tabular}
+\caption{Overview of the models used}
+\label{tab:models-overview}
+\end{table}
+
+Throughout all the experiments we used the Adam optimizer \cite{kingma2014adam}. It is the state-of-the-art (SOTA) approach, so we choose it over the standard stochastic gradient descent (SGD). As for the scheduler, we did some early experiments with the scheduler which reduces the learning rate on plateau, e.g. when loss (or potentially other specified metric) has not decreased for $k$ epochs. The problem was that we had to define the hyperparameter $k$, which again requires some trial and error. Instead, we switched over to the polynomial decay scheduler. For the polynomial decay scheduler, we had to define the starting and desired ending learning rate, along with the polynomial factor. The factor of 1 corresponds to linear decay. We choose the factor of $0.7$. Furthermore, we decided to use the learning rate warmup of $0.05$. Warmup is the training period in which the learning rate linearly increases from effectively 0 to the defined starting learning rate. It us useful so that the initial training steps do not \textit{overshoot} with gradient updates. Instead, small steps towards the minimum are performed at the beginning, and larger steps after the initial movement towards the minimum had already started rolling. In Figure~\ref{fig:lr}, we show the behaviour of our learning rate throughout the training. As for the regularization, we used L2 regularization, which is implemented as weight decay in the PyTorch's version of the Adam optimizer\footnoteurlwithoutheader{https://pytorch.org/docs/stable/generated/torch.optim.Adam.html}{https://pytorch.org/docs/stable/generated/torch.optim.Adam.html}. We used different weight decay values throughout the experiments, which will be later discussed in Section~\ref{sec:eval:ast}.
+
+\imagefigurecaption[0.5]{lr-polynomial-example}
+	        {Learning rate behaviour throughout the training.}
+                {fig:lr}
+
+\section{Raw audio 1-D CNN}
+\label{sec:raw-audio-1d-cnn}
+Among the simplest convolutional approaches is the 1-dimensional convolution on the raw audio waveform. The input was a 1 second window with sample rate $44.1$ kHz, resulting in the input shape of (batch size, 1, 44100). Due to the disproportional sizes, the architecture cannot be shown in an image. Instead, we show it in Table~\ref{tab:architecture-1d-cnn-raw-audio}. The idea was to use the first kernel size corresponding to 10 ms of the audio as we believed that was a reasonable time frame to be able to extract some useful information. We omit mentioning ReLU and BatchNorm1d between each Conv1d and MaxPool1d layer. We also omit mentioning ReLU and dropout between the linear layers. No pre-trained layers were used. The hyperparameters are the same as in Table~\ref{tab:2d-conv-mfcc-hyperparam}.
+
+\begin{table}[H]
+\small
+\centering
+\begin{tabular}{l l c}
+Layer                    & Shape in                   & Kernel \\ \hline
+Conv1d                   & (B, 1, 44100)            & (1, 440), stride = 2          \\
+MaxPool1d ($4 \times 4$) & (B, 32, 21831)            & -          \\
+Conv1d                   & (B, 32, 5457)            & (1, 6), stride = 1          \\
+MaxPool1d ($4 \times 4$) & (B, 32, 5452)            & -          \\
+Conv1d                   & (B, 32, 1363)            & (1, 3), stride = 1          \\
+MaxPool1d ($4 \times 4$) & (B, 64, 1361)            & -          \\
+Conv1d                   & (B, 64, 340)            & (1, 3), stride = 1          \\
+MaxPool1d ($4 \times 4$) & (B, 64, 338)            & -          \\
+Conv1d                   & (B, 64, 84)            & (1, 3), stride = 1          \\
+MaxPool1d ($4 \times 4$) & (B, 128, 82)            & -          \\
+Conv1d                   & (B, 128, 20)            & (1, 3), stride = 1          \\
+MaxPool1d ($4 \times 4$) & (B, 256, 18)            & -          \\
+AvgPool1d                & (B, 256, 4)             & -          \\
+flatten                  & (B, 256, 1)              & - \\
+linear\_1                & (B, 256)                 & -          \\
+linear\_2                & (B, 64)                 & -          \\
+output (no weights)      & (B, 11)                  & - 
+\end{tabular}
+\caption{Architecture of a 1-D CNN on raw audio}
+\label{tab:architecture-1d-cnn-raw-audio}
+\end{table}
+
+\section{MFCC 2-D CNN}
+\label{sec:mfcc-2d-cnn}
+MFCC is a 2-dimensional feature, which makes it suitable for 2-d convolutional layers. We decided on extracting 40 cepstral coefficients in order to make more room for our convolutions and in belief that it would potentially bring more valuable information, as explained in Section~\ref{sec:data-prep:mfcc}. Due to lack of time, we did not experiment with 13 coefficients, although it would be an interesting comparison. We leave that for future work. We additionally resize the width of the image to 256 in order to make it universal and capable of handling different input sizes. The only input length we have tried was the 1 second window at the sample rate of $44.1$ kHz. The architecture is shown in Figure~\ref{fig:2d-cnn-mfcc} and hyperparameters in Table~\ref{tab:2d-conv-mfcc-hyperparam}. No pre-trained weights were used. The input had one channel and we apply four convolutional blocks which contain (Conv2d, ReLU, BatchNorm2d, MaxPool2d). Afterwards, average 2-dimensional pooling is applied, tensor is flattened and fed into two linear layers with a 20 \% dropout and ReLU non-linearity in between. 
+
+\imagefigurecaption[1.0]{2d-cnn-mfcc}
+	        {2-dimensional CNN architecture on MFCC features}
+                {fig:2d-cnn-mfcc}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l r}
+Hyperparameter           & Value   \\ \hline
+Initial learning rate    & 1e-3                        \\
+Final learning rate      & 1e-5                        \\
+Learning rate scheduler  & Polynomial decay, power=0.7, warmup=0.05 \\
+Number of epochs         & 35                          \\
+Batch size               & 16                          \\
+L2-regularization factor & 5e-4                       
+\end{tabular}
+\caption{Hyperparameters of our 1-D raw audio, 2-D MFCC, and 1-D audio features CNN models}
+\label{tab:2d-conv-mfcc-hyperparam}
+\end{table}
+
+%\begin{figure}[thb]
+%    \centering
+%    \includesvg[width=0.8\linewidth]{images/2d-cnn-mfcc.svg}
+%    \caption{2-dimensional CNN architecture on MFCC features}
+%    \label{fig:2d-cnn-mfcc}
+%\end{figure}
+
+\section{Audio features 1-D CNN}
+\label{sec:audio-features-1d-cnn}
+For the convolutional model on the extracted audio features, we take a very experimental approach. After discussing the statistical significance of the features in Section~\ref{sec:statistical-testing}, we omit tonnetz feature due to its insignificance. Additionally, we omit spectrogram, as it was covered by other, more powerful models (see Sections~\ref{sec:spectrogram-resnet},~\ref{sec:ast}). After including the features, we are left with 40 of them. Now, since most of these features do not interact, it would be incorrect to just stack the features vertically. Instead, we decided to feed each feature as a separate channel into the 1-dimensional convolution. Feeding each feature in a separate channel allows the model to learn individual patterns and correlations for each feature. However, it does not allow feature interactions. This is something we do want to avoid between, for example, zero-crossing rate and chroma features. However, this is something we would like to have between chroma features themselves. So, this approach was done out of curiosity to see if it would be more beneficial for the model to avoid learning unnecessary correlations between uncorrelated features more than it would be learning the correlations between both correlated and uncorrelated features. Unfortunately, due to the lack of time, we did not have time to test the 2-dimensional convolution on all the audio features. Thus, we leave that for future work. However, we can compare the results with the previously discussed 2-d convolution of MFCC features, which we will do in Chapter~\ref{ch:evaluation}.
+
+\imagefigurecaption[1.0]{1d-cnn-audio-features}
+	        {1-dimensional CNN architecture on extracted audio features}
+                {fig:1d-cnn-audio-features}
+
+The architecture of the model is shown in Figure~\ref{fig:1d-cnn-audio-features} and the hyperparameters in Table~\ref{tab:2d-conv-mfcc-hyperparam}. Again, the only window we experimented with was or size 1 second. Consequently, with n\_fft, hop\_length, frame\_length, and sample\_rate equal to 2048, 512, 2048, and $44100$ respectively, we obtain an input of shape $H \times W$. Here, $H$ is the number of features (40) and $W$ is the example length derived when using the mentioned parameter values (87). The features are, however, fed into separate channels. Again, four (Conv1d, ReLU, BatchNorm1d, MaxPool1d) blocks are used with the average 1-dimensional pooling applied afterwards. Finally, the tensor is flattened and fed into two linear layers with a 20 \% dropout and ReLU non-linearity in between. Logits are returned from the model's forward pass. 
+
+\section{Spectrogram -- ResNet50}
+\label{sec:spectrogram-resnet}
+
+Perhaps one of the most famous and widely used neural network architectures is ResNet, first introduced in \cite{resnet}. In an attempt to mitigate the problems of vanishing and exploding gradients, which tend to appear more and more often as the depth of the network increases, authors of ResNet introduce a concept of a \textbf{residual unit}. Residual units enable the network to
+
+\begin{enumerate}[label=(\alph*)]
+\item utilize skip connections, allowing the input data to skip a couple of layers, which in turn helps stop the exploding/vanishing gradient problems and reduce overfitting, by acting as a sort of dropout
+\item learn \textbf{residual mappings}, which allow the layer of a network to form an identity function that maps to an activation earlier in the network when a specific layer's activation converges to zero in the current layer. This also helps with the degradation of performance in the deeper layers, as the network can simply "revert" to an earlier layer's output
+\end{enumerate}
+
+\imagefigurecaption[0.8]{resnet-block}
+	        {Visualisation of a residual unit, one of the key building blocks of residual networks \cite{resnet}}
+                {fig:resnet-block}
+
+Due to its unique architecture and the use of residual blocks, residual networks support a large number of layers - it is not uncommon for a residual network to have 50, 101, or even 152 layers. The number of layers used in residual networks is usually denoted by a number next to their name; for example, a residual network with 101 layers would be denoted as ResNet-101. 
+
+Of course, training such a deep network from scratch would require a large amount of data in order for the network to work well. So, a usual approach is to pre-train the network on a general image-related task (if the network is used for computer vision, of course, as ours was), such as classification on the large ImageNet dataset. The weights from that pre-trained model are then used as a starting point, in addition to replacing the final fully-connected layer with a new one, depending on the specific nature of the problem. This approach is known as \textbf{transfer learning} and is widely used.
+
+We choose ResNet as the main convolutional network for spectrograms as it has proven itself to be a powerful and versatile network well suited to a wide array of applications. Furthermore, it has a large capacity, allowing it to better learn the distribution of our data, especially when using augmentation methods  such as dynamic sampling, which add a high degree of variability.
+
+Our version of the ResNet architecture was ResNet-50, pre-trained on ImageNet-1K. We replace the final fully-connected layer with our own and add a dropout layer with p=0.2 between the FC layer and the output of the base ResNet-50 model. Hyperparameters used to train all the ResNet-50 models were, unless explicitly stated otherwise, the ones in Table~\ref{tab:resnet-hyperparams}.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l r}
+Hyperparameter           & Value   \\ \hline
+Initial learning rate    & 2e-4                        \\
+Final learning rate      & 1e-6                        \\
+Learning rate scheduler  & Polynomial decay, factor=0.7, warmup=0.05 \\
+Number of epochs         & 35                          \\
+Batch size               & 16                          \\
+L2-regularization factor & 1e-5                       
+\end{tabular}
+\caption{Standard hyperparameters of our ResNet-50 model}
+\label{tab:resnet-hyperparams}
+\end{table}
+
+
+
+\section{Audio Spectrogram Transformer}
+\label{sec:ast}
+The only model with no convolutional layers is the Audio Spectrogram Transformer (AST) \cite{gong2021ast}. There are multiple layers to decouple in the definition and background of AST. First, the backbone of the whole architecture is the Transformer \cite{vaswani2017attention}. It was originally proposed for the Natural Language Processing (NLP) problems. However, due to its incredible parallelism, model depth, and attention mechanism, it had achieved great success in models such as BERT \cite{devlin2018bert}, GPT-3 \cite{brown2020language}, XLNet \cite{yang2019xlnet}, T5 \cite{raffel2020exploring} etc. Consequently, it was adjusted to be able to handle vision inputs in the similar way it handles text -- in parallel. That is how the Vision Transformer (ViT) \cite{kolesnikov2021image} was born. Finally, since spectrograms are the most often feature used in audio classifications, ViT was further trained on the complete Audioset dataset \cite{audioset2017}(Section \ref{sec:audioset}). That is the simplified story of how AST came to life. In the next few paragraphs, we will go over the important details of the (Vision) Transformer.
+
+\asideimagesnocite{4cm}{9.5cm}
+	    {transformer-encoder}
+	    {Transformer encoder \cite{kolesnikov2021image}}
+	    {ast-architecture}
+	    {AST architecture \cite{gong2021ast}}
+	    {Audio Spectrogram Transformer \cite{kolesnikov2021image, gong2021ast}}
+     %\footnotewithoutheader{Images taken from \cite{kolesnikov2021image} and \cite{gong2021ast} respectively.}
+	    {fig:ast-architecture}
+
+The originally proposed Transformer is made of the encoder and decoder part. The encoder's task is to extract useful information from the input text (image), while the decoder's task is generating text (image) from the input and previously extracted information. As we require only the discriminative model, we discard any discussion on the decoder and focus solely on the encoder. It is shown in Figure~\ref{fig:ast-architecture}(a). The input, which we will explain later, is passed onto the sequence of $L$ layers, whose architectures are shown in grey. In out case, $L$ was equal to 12. After normalization all the inputs (text tokens or image patches) are in parallel passed onto the Multi-Head Attention (MHA) sub-layer. \textit{Multi-head} indicates multiple attention heads (layers), but let's focus on a single one for now. First, each input token (patch), is used to create a Query (Q) vector, a Key (K) vector, and a Value (V) vector. These vectors are created by multiplying the embedding by Query, Key, and Value matrices respectively. These matrices are trained end-to-end during the process. The resulting Q, K and V vectors are passed onto the scaled dot-product attention (Figure~\ref{fig:attention}(a)) to calculate how much does each token (patch) \textit{attend} to the others, i.e. how connected or important they are to each other in some abstract way which the model learns itself. It is important to mention that this is the simplified explanation, since the vectors are passed as part of the matrices in the original implementation. After calculating the scaled dot-product attention of the matrices for each head, the outputs are concatenated and multiplied with yet another weight matrix (Figure~\ref{fig:attention}(b)). What follows are the residual connection and another layer normalization. Transformer architecture is well equipped with residual connections due to its depth, which allows the gradients to be passed all the way to the first layers during gradient backpropagation. To continue, the output is passed through two feed-forward layers, another residual connection is applied and the final outputs are passed onto the next layer for the same treatment. Each layer receives the output of the previous layer, with the exception of the first layer, which receives the input, which we will now discuss. 
+
+\asideimagesnocite{2.5cm}{4.6cm}
+	    {scaled-dot-product-attention}
+	    {Scaled dot-product attention \cite{kolesnikov2021image}}
+	    {mha}
+	    {Multi-Head Attention \cite{gong2021ast}}
+	    {Transformer's attention mechanism}
+     %\footnotewithoutheader{Images taken from \cite{kolesnikov2021image} and \cite{gong2021ast} respectively.}
+	    {fig:attention}
+
+The biggest contribution of ViT is, in our opinion, the way they adjust the image input to be appropriate for the Transformer architecture, just as text tokens are. 
+As discussed in \cite{kolesnikov2021image}, the standard Transformer receives as input a 1D sequence of token embeddings. To handle images, they reshape the image $\mathbf{x} \in \mathbb{R}^{H \times W \times C}$ into a sequence of flattened 2D patches $\mathbf{x}_p \in \mathbb{R}^{N \times (P^2 \cdot C)}$, where ($H$, $W$) is the resolution of the original image, $C$ is the number of channels, ($P$, $P$) is the resolution of each image patch, and $N = HW / P^2$ is the resulting number of patches, which also serves as the effective input sequence length for the Transformer. The Transformer uses constant latent vector size $D$ through all of its layers. Thus they flatten the patches and map to $D$ dimensions with a trainable linear projection (see Figure~\ref{fig:ast-architecture}). The output of this projection is referred to as patch embeddings. For the base-sized models (and the model we had used) the size of the patch embedding is 768.
+
+There is a slight difference in creating the input for AST. According to \cite{gong2021ast}, the input audio waveform of $t$
+seconds is first converted into a sequence of 128-dimensional log
+Mel filterbank (fbank) features are computed with a 25ms Hamming window every 10ms. This results in a $128 \times 100t$ spectrogram as input to the AST. The spectrogram is then split into a sequence of $N$ $16 \times 16$ patches with an overlap of 6 in both time
+and frequency dimension, where $N = 12 \left\lceil (100t - 16)/10 \right\rceil$ is
+the number of patches and the effective input sequence length for the Transformer. The patch is again flattened and linearly projected to a patch embedding of size 768. In order to fix these previously discussed numbers, AST requires users to use the sample rate of $16$ kHz. Thus, we down-sampled our audio files from $44.1$ kHz to $16$ kHz.
+
+Since the patch embedding is not in temporal order and the architecture itself has no mechanism of capturing the input order, they add a trainable 768-dimensional positional embedding in order to capture the information about the spatial structure of spectrograms. Positional embeddings are denoted with a blue color and letter \texttt{P} in Figure~\ref{fig:ast-architecture}. The most important embedding, however, is the \texttt{[CLS]} embedding which is appended at the beginning of the sequence and passed later onto the single linear layer to obtain the output. As its name suggests, this embedding is used for classification purposes. The Transformer Encoder's output of the \texttt{[CLS]} embedding serves as the audio spectrogram representation \cite{gong2021ast}. In our use case, the 768-dimensional \texttt{[CLS]} embedding was linearly projected by a $768 \times 11$ (num\_classes) matrix to obtain \texttt{logit} outputs for each class. We used Huggingface\footnoteurlwithoutheader{https://huggingface.co/docs/transformers/main/en/model\_doc/audio-spectrogram-transformer}{https://huggingface.co/docs/transformers/main/en/model\_doc/audio-spectrogram-transformer} implementation of an AST.
+
+According to Huggingface's specification, a maximum spectrogram length that can be fed into AST is 1024. With the sample rate of $16$ kHz, this is equal to about 10 seconds of audio. Longer files get truncated, while the shorter ones are padded. We tried two approaches. First, we used AST as is, with pre-trained position embeddings and 10 second audio files. This has downsides of (a) longer training time due to longer (default) input and (b) much of padding and truncating is applied. Second, we tried fixing the input length to 1 second by using multiple windows on a single file. This has a downside of training completely new positional embeddings, due to the new width of input spectrograms. In total $1214 \times 768 = 932,352$ positional embeddings were discarded and $110 \times 768 = 84,480$ new ones were randomly (with normal distribution) initialized and trained. Just as a reference, the discarded positional embeddings contain more parameters than any of the raw audio 1-D CNN, MFCC 2-D CNN, and audio features 1-D CNN models! However, the benefit of such approach is a much faster training time and no padding/truncating. Hyperparameters used to train all the AST models were, unless explicitly stated otherwise, the ones in Table~\ref{tab:ast-hyperparams}. We increased number of gradient accumulation steps according to the maximum batch size that could fit into the GPU memory. For the 10 second, the maximum batch size was 1, so we increase gradient accumulation steps to 16. Separate optimizer and schedulers were used for the (a) classifier and (b) all the other parameters. The reason for this is that the classifier is not pre-trained. Instead, it is randomly initialized using the normal distribution. Thus, we do not want to preserve any knowledge from before by using a small learning rate, like we do for the rest of the AST parameters. 
+
+\begin{table}[H]
+\centering
+\begin{tabular}{l r}
+Hyperparameter           & Value   \\ \hline
+Initial learning rate (base)    & 2e-5                        \\
+Final learning rate (base)     & 2e-6                        \\
+Initial learning rate (classifier)    & 1e-3                        \\
+Final learning rate (classifier)     & 1e-4                        \\
+Learning rate scheduler  & Polynomial decay, factor=0.7, warmup=0.05 \\
+Number of epochs         & 35                          \\
+Batch size               & 16                          \\
+L2-regularization factor (base) & 1e-4                  \\
+L2-regularization factor (classifier) & 1e-3                  
+\end{tabular}
+\caption{Standard hyperparameters of our AST model}
+\label{tab:ast-hyperparams}
+\end{table}
+
+\section{Window size}
+\label{sec:window-size}
+Audio files are, as we already mentioned multiple times, unique in many ways when compared to other forms of data. One of the main ways they are unique is their variable size, which can often present a problem for neural networks. A good example is the IRMAS dataset -- all the examples from the training set are 3s in length, while the data used for testing can vary anywhere between 5 and 20s. So, it is important that our model is good at working with files of different lengths, often different from what the model had been trained on. A good way of solving this is by splitting the full-length audio into windows of the same size, analyzing each section and predicting instruments it contains, and then aggregating outputs of all the windows into a single output, which is then equal to the prediction for the entire audio clip. By doing this, our network can be efficiently trained to work with fixed-size inputs (for example, 1s), and can later work with inputs of any size, as all inputs are split into windows equal in length to the window the network had been trained on. This approach is inspired by the work of \cite{hanetal_2016}, who also empirically prove that neural networks trained on the task of predominant instrument recognition are more efficient when trained and evaluated using shorter window sizes (1s) when compared to larger window sizes (3s). They claim that using a shorter window size helps obtain local instrument information. We confirm this finding in our own results, as shown later in Section~\ref{sec:eval:window-sizes}.
+
+IRMAS dataset is especially suited to this approach, as it guarantees that the instrument audio clip is labeled with is playing the entire length of the clip. This means that when training a model, original examples of lengths N can be split into M windows, each of lengths N/M, and each carrying the label of the original clip. In addition to allowing the network to train on shorter clips, this also acts as an augmentation strategy, increasing the number of examples used during training.
+
+\section{Aggregation functions}
+\label{sec:aggregation-functions}
+
+The question remains, once a prediction is made for every window of the original audio clip, how to aggregate all the predictions into a final prediction?
+
+The authors of \cite{hanetal_2016} provide two aggregation strategies. The first, one, they call S1, is simply taking the average of the sigmoid outputs \textbf{class-wise}, and then thresholding them without normalization. The goal of this method is to "capture the existence of each instrument with its mean probability such that it might return the result without any detected instrument" \cite{hanetal_2016}. The second strategy, called S2, is done as follows: all sigmoid outputs are summed class-wise over all the window-based predictions for the audio clip. The values are then normalized by dividing with the maximum value amongst classes, so the normalized values fall into the [0,1] range. The normalized values are then thresholded, and all the classes with values over the threshold $T$, are taken as positive. The logic behind this method is based on the assumption that humans perceive the "predominant" instrument in a scaled sense; the strongest instrument is always detected, and the detection of the other instruments is judged relative to their strength compared to the most dominant instrument. In our case of predominant instrument classification, all instruments with predicted values above the threshold (after aggregation) are considered predominant. The authors found that, in general, the S2 aggregation strategy with a threshold value of 0.5 provides the best results, so this was the strategy we also used in our experiments. 
+

@@ -1,0 +1,108 @@
+# this config file contains configuration relating to loading and processing data
+# such as augmentation configuration, dataloader batch size, collate function used in dataloaders, dataset parameters etc.
+train_dataloader:
+  batch_size: 16
+  shuffle: True
+  drop_last: True
+  # if we don't want to use a custom collate fn, set this property to None
+  collate_fn: None
+
+val_dataloader:
+  batch_size: 16
+  collate_fn: src.model.data_utils.data_utils.collate_fn_windows
+
+test_dataloader:
+  _target_: torch.utils.data.DataLoader
+  dataset: ${data.test_dataset}
+  batch_size: 16
+  collate_fn: src.model.data_utils.data_utils.collate_fn_windows
+
+train_dataset:
+  _target_: src.model.data_utils.audio_dataset.AudioDataset
+  data_root_path: ${paths.data_dir}
+  data_mean: ${dataset.general.data_mean}
+  data_std: ${dataset.general.data_std}
+  n_mels: 256
+  name: train
+  sr: 44100
+  return_type: spectogram
+  use_window: False
+  augmentation_config: ${data.train_augmentations}
+  dynamic_sampling: False
+
+val_dataset:
+  _target_: src.model.data_utils.audio_dataset.AudioDataset
+  data_root_path: ${paths.data_dir}
+  data_mean: ${dataset.general.data_mean}
+  data_std: ${dataset.general.data_std}
+  n_mels: 256
+  name: val
+  sr: 44100
+  return_type: spectogram
+  use_window: True
+  window_size: 3
+  dynamic_sampling: False
+  augmentation_config: ${data.test_augmentations}
+
+test_dataset:
+  _target_: src.model.data_utils.audio_dataset.AudioDataset
+  data_root_path: ${paths.data_dir}
+  data_mean: ${dataset.general.data_mean}
+  data_std: ${dataset.general.data_std}
+  n_mels: 256
+  name: test
+  sr: 44100
+  return_type: spectogram
+  use_window: True
+  window_size: 3
+  augmentation_config: ${data.test_augmentations}
+
+train_augmentations:
+  audio:
+    active: True
+    add_noise:
+      active: True
+      mean: ${dataset.general.data_mean}
+      std: ${dataset.general.data_std}
+      alpha: 0.005
+    pitch_shift:
+      active: True
+      range: 6
+    time_shift:
+      active: True
+      shift_limit: 0.4
+  spectogram:
+      active: True
+      freq_mask:
+        active: True
+        F_per: 10
+        num_masks: 2
+      time_mask:
+        active: True
+        time_per: 10
+        num_masks: 2
+
+test_augmentations:
+  audio:
+    active: False
+    add_noise:
+      active: False
+      mean: ${dataset.general.data_mean}
+      std: ${dataset.general.data_std}
+      alpha: 0.005
+    pitch_shift:
+      active: False
+      range: 6
+    time_shift:
+      active: False
+      shift_limit: 0.4
+  spectogram:
+      active: False
+      freq_mask:
+        active: False
+        F_per: 10
+        num_masks: 2
+      time_mask:
+        active: False
+        time_per: 10
+        num_masks: 2

@@ -1,0 +1,243 @@
+\newchapter{Data Understanding}{ch:data-understanding}
+
+\section{Audio representation}
+\label{sec:audio-representation}
+In order to understand data, we need to first understand audio.
+A majority of this theoretical audio overview is done according to \cite{knees2016music}.
+Task of audio classification deals with acoustic waves, e.g. sounds. Sound is transmitted through the medium (usually air) as pressure oscillations. To be completely correct, the term audio is used to refer to transmission, reception, reproduction of sounds that lie within the limits of human hearing. An audio signal is a representation of sound. Unlike sheet music (musical notes and pitches) or symbolic representation (piano-roll, MIDI, score representations), an audio representation encodes all the information, such as temporal, dynamic, and tonal deviations, which make up a musician style. However, in audio representations, these mentioned parameters are not given explicitly, but need to be inferred using audio analysis. This task becomes even more difficult in case of polyphonic music, where multiple voices and/or instruments are present. Polyphonic music is indeed at the center of this work. What's more, the perception of sound is subjective and depends on human ear and brain, which often remains forgotten when performing an ML approach on audio data.
+
+\imagefigurecaption[0.9]{waveform}
+			{Audio waveform -- violin.}
+			{fig:audio-waveform}
+
+A sound is produced by a vibrating object, e.g. vocal cords or the string and soundboard of a violin.  These vibrations modify the air molecules, resulting in local regions of compression and rarefaction. This alternation pressure travels via air to a listener or microphone, where it is either perceived by a human or converted into an electric signal. Figure~\ref{fig:audio-waveform} shows a waveform of a violin from our training set. The oscillations are of the same direction as propagation, which makes sound a longitudinal wave. 
+
+If the points of high and low air pressure repeat in a regular alternating fashion, the resulting waveform is periodic. The period is defined as the time required for a cycle. The frequency is the reciprocal of the period and is measured in Hertz (Hz). The audible frequency of a human is between 20 Hz and 20 kHz. These ranges vary for different species. For example, bats can detect frequencies beyond 100 kHz. Pitch is a subjective position of a sound in a complete range of a sound. In music, standard pitches have long been used to facilitate tuning among various performing groups. A4 (440 Hz) is considered a reference pitch. 
+
+Sample rate is the number of audio samples carried within a second and is measured in Hz. Namely, an audio with $44,100$ samples per second is considered to have a sample rate of $44.1$ kHz. Bandwidth is a difference between the highest and the lowest frequency within an audio stream. Both sample rate and frequency are expressed in Hz, which could point into thinking that they denote the same thing. That is, however, not the case. The sample rate determines the maximum audio frequency that can be produced. In theory, maximum frequency that can be represented is half the sample rate. In practice, maximum frequency is a little lower. Thus, if we want an audio sound whose every segment (almost) every human will be able to hear, we should ideally use a sample rate of $44,100$ kHz. 
+
+\subsection{Fourier Transform}
+\label{sec:fourier-transform}
+Fourier transform is a mathematical tool that transforms signals from the time domain to the frequency domain. Fourier transform is based on Fourier's theorem, which states that a continuous and periodic function can be represented as a sum of sine and cosine waves with different frequencies. The transform generates a set of complex values that describe the frequency spectrum of the input signal.
+
+The Fourier transform is a vital tool in signal processing, and several approaches and algorithms have been developed for it. One of the most commonly used algorithms is the fast Fourier transform (FFT), which is a computationally inexpensive variant of the Fourier transform. It is used when the input signal is discrete, which is the case in signal representation as samples and frames. The FFT is a discrete Fourier transform (DFT), as defined in Eq~\ref{eq:fourier-transform}, where $m$ is ranges from $0$ to $K - 1$, $K$ is the number of samples in a frame, and $x_k$ represents the $k$-th input amplitude, i.e. the $k$-th sample in the frame. Each output $X_m$ is a complex number with a real-valued part Re($X_m$) and an imaginary part Im($X_m$). The magnitude and phase are obtained from these numbers as $|X_m| = \sqrt{Re(X_m)^2 + Im(X_m)^2}$ and $\phi(X_m) = \text{tan}^-1 \frac{Im(X_m)}{Re(X_m)}$.
+
+\FourierTransformEquation
+
+The Cooley and Tukey algorithm \cite{cooley1965algorithm}, proposed in 1965, is used to reduce the computational complexity of the Fourier transform. It runs in $\mathcal{O}(K log(K))$ and requires $K$ to be a power of two. The discrete cosine transform (DCT) is another variant of the Fourier transform, which uses only real values instead of complex ones. The short-time Fourier transform (STFT) is a technique used in audio signal processing, which computes several DFTs over different segments of the input signal. This is an especially useful and often used technique in audio processing. The computed segments correspond to windowed frames in temporal order, and the resulting frequency domain representations are concatenated and depicted along the time axis to yield a spectrogram (see Section ~\ref{sec:spectrogram}). The overview of this subsection was done according to \cite{knees2016music}.
+
+\imagefigurecaption[0.45]{dft}
+			{Discrete Fourier transform \cite{kong2020python}}
+			{fig:dft}
+
+
+\section{Audio Features}
+\label{sec:audio-features}
+In order to perform analysis or ML approaches on the the audio, we first need to extract features from it. Namely, raw audio waveform previously shown in Figure~\ref{fig:audio-waveform} is not a good candidate for performing the analysis directly. Thus, we need to create meaningful numbers (audio features) from the marginally meaningless numbers (raw audio waveform). Audio features are numerous and going over all of them is not the point of this work. Instead, we will go over some of which we found interesting and included into at least one of our experiments or analyses. 
+
+\subsection{Zero-Crossing Rate}
+\label{sec:zero-crossing-rate}
+Zero-Crossing Rate (ZCR) measures the number of time the amplitude value of a raw audio waveform changes its sign within the frame t under consideration, as shown in Eq.~\ref{eq:zero-crossing-rate}.
+\ZCRequation
+ZCR is a simple low-level time domain feature mostly used in speech recognition and music information retrieval to detect percussive sounds and noise \cite{gouyon2000use}. This feature could be useful in differentiating between classical piano music and distorted percussive instruments, such as electric guitar \cite{knees2016music}. An example of ZCR is shown later in Figure~\ref{fig:zcr-rmse}.
+
+\subsection{Root-Mean-Square-Energy}
+\label{sec:root-mean-square-energy}
+Root-Mean-Square-Energy (RMSE) is a time domain feature whose computation is shown in Eq.~\ref{eq:rmse}.
+\RMSEequation
+RMSE is related to perceived sound intensity and can be used for loudness estimation. Again, classical music tends to have lower RMSE values compared to other genres. An example of RMSE is shown later in Figure~\ref{fig:zcr-rmse}.
+
+\subsection{Spectral Centroid}
+\label{sec:spectral-centroid}
+Spectral centroid (SC) is a frequency domain feature which represents the frequency where most of the energy is concentrated, i.e. where the center of mass of the spectrum is located. SC is used to measure the \textit{brightness} of a sound. As it can be seen from Eq.~\ref{eq:spectral-centroid}, high frequency bands are given more weight than low frequency ones. 
+\SCequation
+Thus, SC is sensitive to low-pass filtering, such as down-sampling. If we first calculated SC on an audio sampled at $44.1$ kHz, down-sampled the audio to $16$ kHz, and calculated the SC again, it would change significantly. 
+
+\subsection{Spectral Bandwidth}
+\label{sec:spectral-bandwidth}
+Spectral bandwidth (BW) is also a frequency domain feature extracted from the SC (Section~\ref{sec:spectral-centroid}). BW indicates a spread of the spectrum around the centroid. A more casual definition could be that BW is a variance from the mean frequency of the signal. Its formulation is given in Eq.~\ref{eq:spectral-bandwidth}.
+\BWequation
+A higher SB value indicates a wider spread of the spectral energy, which can be used to distinguish between different timbres or instruments. For example, classical music tends to show smaller bandwidths than electronic music.
+
+\subsection{Spectral Contrast}
+\label{sec:spectral-contrast}
+Spectral Contrast is a feature that measures the difference between peaks and valleys in the spectrum. Each frame of a spectrogram is divided into frequency sub-bands. For each sub-band, the energy contrast is estimated by comparing the mean energy in the top quantile (peak energy) to that of the bottom quantile (valley energy). High contrast values generally correspond to clear, narrow-band signals, while low contrast values correspond to broad-band noise \cite{jiang2002music}.
+
+\subsection{Spectral Rolloff}
+\label{sec:spectral-rolloff}
+Spectral Rolloff (SR) is a frequency domain feature that measures the frequency $f_t$ below which a certain percentage of the total spectral energy lies, and can be calculated using Eq.~\ref{eq:spectral-rolloff}. It is calculated for each frame $t$ as the center frequency for a spectrogram bin such that at least roll percent ($p_r$) of the energy of the spectrum in this frame is contained in this bin and the bins below. 
+\SRequation
+SR is useful for characterizing the high-frequency content of an audio signal. For example, classical music tends to have a lower SR compared to rock or electronic music, which has a higher SR due to its reliance on high-frequency energy.
+
+\subsection{Spectral Flatness}
+\label{sec:spectral-flatness}
+Spectral Flatness (SF) measures the degree of spectral flatness of an audio signal, and can be calculated using Eq.~\ref{eq:spectral-flatness}.
+\SFequation
+SF is a frequency domain feature that can be used to distinguish between harmonic and noisy sounds. For example, harmonic sounds, such as those produced by string instruments, tend to have a higher SF value compared to noisy sounds, such as those produced by percussive instruments.
+
+\subsection{Polynomial Features}
+\label{sec:poly-features}
+Polynomial Features (PF) are the coefficients of fitting an $n$-th order polynomial to the columns of a spectrogram. An example (adapted from \cite{mcfee2015librosa}) of fitting the $0$-th (constant), $1$-st (linear), and $2$-nd order polynomial on the columns of a spectrogram, along with the spectrogram, can be seen in Figure~\ref{fig:poly-features}. A shown example is from the IRMAS training set and labeled as \texttt{vio}.
+\imagefigurecaption[0.9]{poly_features}
+	        {$0$-th , $1$-st, and $2$-nd polynomial fit on the spectrogram columns.}
+                {fig:poly-features}
+
+\subsection{Chroma Features}
+\label{sec:chroma-features}
+Chroma features are a set of 12 pitch class features that represent the relative intensity of each of the 12 chromatic pitches in a musical piece -- C, C\#, D, D\#, E, F, F\#, G, G\#, A, A\#, and B. Chroma features are invariant to changes in timbre and octave, making them useful for music information retrieval tasks. Chroma is especially powerful in analyzing music whose pitches can be meaningfully categorized. The computation of chroma features involves computing the Short-Time Fourier Transform (STFT) of an audio signal and mapping the resulting spectrum to a 12-dimensional pitch space using a bank of triangular filters. A visualization of chroma features for two examples labeled as \texttt{vio} and \texttt{gel} is shown in Figure~\ref{fig:chroma-tonnetz}.
+
+\subsection{Tonnetz}
+\label{sec:tonnetz}
+Tonal centroid features, usually referred to as tonnetz, are a projection of chroma features onto a 6-dimensional basis representing the perfect fifth, minor third, and major third each as two-dimensional coordinates - $x$ and $y$ axis \cite{mcfee2015librosa}. They capture tonal relationships between the pitches. Regarding any further details about the algorithm, we refer readers to the original paper \cite{harte2006detecting}. A visualization of tonnetz features for two IRMAS training examples labeled as \texttt{vio} and \texttt{gel} respectively is shown in Figure~\ref{fig:chroma-tonnetz}. Projection patterns are observable. 
+
+\asideimages{15cm}{15cm}
+	    {chroma-tonnetz-violin}
+	    {Violin}
+	    {chroma-tonnetz-gel}
+	    {Electric guitar}
+	    {Chroma and tonnetz features of two IRMAS training examples.}
+	    {fig:chroma-tonnetz}
+
+\subsection{Mel-Frequency Cepstral Coefficients}
+\label{sec:mfcc}
+Mel-Frequency Cepstral Coefficients (MFCC) are a small set of features (usually 10-20) that represent the spectral envelope of an audio signal. A spectral envelope is a curve in the frequency-amplitude plane, derived from a Fourier magnitude spectrum, which describes one point in time (one window, to be precise). MFCCs are commonly used in speech recognition and music information retrieval tasks such as genre classification, instrument recognition, and emotion recognition etc. The computation of MFCC involves mapping the frequency domain of an audio signal to the mel scale, which is a non-linear frequency scale that approximates the human auditory system. The resulting mel-frequency spectrum is then transformed using the Discrete Cosine Transform (DCT) to obtain a set of cepstral coefficients. A more refined process of obtaining MFCCs is presented in ~\ref{fig:mfcc}(a) and the coefficients themselves are shown in Figure~\ref{fig:mfcc}(b) for IRMAS training examples containing \texttt{vio} and \texttt{gel} respectively. The first few coefficients typically capture the overall spectral shape of the signal, while higher-order coefficients capture finer spectral details. This can be seen in Figure~\ref{fig:mfcc}(b), where the first two coefficient have similar values, while the coefficients above differ significantly. 
+
+\asideimages{15cm}{15cm}
+	    {mfcc-process}
+	    {Process of computing the MFCC from audio waveform}
+	    {mfcc-example}
+	    {MFCC examples of two different IRMAS training set examples}
+	    {MFCC process and examples}
+	    {fig:mfcc}
+
+\subsection{Spectrogram}
+\label{sec:spectrogram}
+A spectrogram is a visual representation of the time-varying frequency content of an audio signal. 
+To compute a spectrogram, a time-domain signal is divided into shorter segments of equal length. Then, the fast Fourier transform (FFT) is applied to each segment. The spectrogram is a plot of the spectrum on each segment. The Frame Count parameter determines the number of FFTs used to create the spectrogram and, as a result, the amount of the overall time signal that is split into independent FFTs.
+Thus, spectrograms are useful for analyzing the spectral content of an audio signal over time.
+Spectrograms of the same \texttt{vio} and \texttt{gel} examples are shown in Figure~\ref{fig:spectrogram} (a) and (b) respectively. The log scale is used to better visualize the frequency content of the signal in a way that is more similar to how human perception works. This is due to the fact that our perception of pitch is roughly logarithmic. By using a log-scale, a log-scaled spectrogram compresses the high frequency range while expanding the lower frequency range. This makes the visualization more suitable for signals with a wide frequency range, which is especially useful when using a sample rate of $44.1$ kHz, which we do.
+One can observe smoother frequencies through time in the violin example, as opposed to visible frequency increases caused by electric guitar strums. A spectrogram representing a violin reveals individual notes and overtones, i.e. the horizontal lines in the spectrogram. On the other hand, spectrogram representing an electric guitar shows a rather vertical characteristic of a spectrogram, where distinctive repeating patterns emerge.
+
+\asideimages{15cm}{15cm}
+	    {spectrogram-violin}
+	    {Violin}
+	    {spectrogram-gel}
+	    {Electric guitar}
+	    {Spectrogram IRMAS training set examples}
+	    {fig:spectrogram}
+
+Another variant of a spectrogram is the mel spectrogram. Mel spectrogram uses a non-linear scaling that is based on the Mel scale, which is a perceptual scale of pitch based on the concept of critical bands. Mel spectrograms map the frequency axis to a set of fixed, non-linearly spaced frequency bands that better reflect how human hearing perceives different frequency regions. This is particularly useful for speech and music signals, as it allows features that are more relevant to human perception to be extracted. The Mel scale is often used in speech and music recognition applications, where it has been found to perform better than linearly-spaced frequency representations. A comparison between a log-scaled and mel-scaled power spectrogram is shown in Figure~\ref{fig:log-mel-spectrogram}. First, we observe a difference in frequency scale (in Hz) on the left. The mel mapping of the frequencies causes them to \textit{start} lower on the scaled compared to a log-scaled spectrogram. As a result, this causes the mel-scaled spectrogram to appear blurred, as the wider range of frequencies is covered on the shorted section of $y$ axis, compared to a log-scaled spectrogram.
+
+\asideimages{15cm}{15cm}
+	    {log-spectrogram-violin}
+	    {Log-scaled}
+	    {mel-spectrogram-violin}
+	    {Mel-scaled}
+	    {Comparison between log- and mel-scaled spectrograms}
+	    {fig:log-mel-spectrogram}
+
+\section{IRMAS Dataset}
+\label{sec:irmas-dataset}
+\subsection{Overview}
+\label{sec:irmas-dataset:overview}
+The dataset we were provided with for the competition is IRMAS \cite{bosch2012comparison}. It is a collection of audio files with 11 labels in total -- cello, clarinet, flute, acoustic guitar, electric guitar, organ, piano, saxophone, trumpet, violin, and human singing voice. These labels will appear throughout the work with their respective abbreviations -- \texttt{cel}, \texttt{cla}, \texttt{flu}, \texttt{gac}, \texttt{gel}, \texttt{org}, \texttt{pia}, \texttt{sax}, \texttt{tru}, \texttt{vio}, and \texttt{voi}. Training set contained 6705 examples, while the validation set had 2874 examples. Both sets were sampled at the frequency of 44,1 kHz and were saved in a 16-bit stereo wav format. Training examples are 3 seconds long and are labeled with one instrument only. That instrument is guaranteed to appear throughout the whole duration of the audio. There might be other instruments appearing, but they will not be labeled as positive. By inspecting the dataset, we have noticed that the presence of other instruments is not rare, which could degrade the performance of the model. The reason for this performance degradation is the validation set itself, which labels an instrument as positive as soon as it appears within the audio for any duration. Additionally, validation set contains files with the duration between 5 and 20 seconds.
+
+\subsection{Visualizations}
+\label{sec:irmas-dataset:visualizations}
+
+The best way of understanding a dataset is by visualising it in various ways. In order to get the impression of the dataset, we took an approach of visualising its numerous distributions. To start with, Figure~\ref{fig:instances-per-class}(a) shows the distribution of instances per class. We observe that the dataset is not perfectly balanced, but the number of \texttt{voi} examples, which is the most represented class, is roughly 2 times greater than the number of \texttt{cel} examples, which is the least represented class. At first, this does not call for any up-/down-sampling, but in case of a significantly worse performance on the minority classes, we would consider doing so. 
+
+\asideimages{7.3cm}{7.3cm}
+	    {irmas-train-instances_per_class}
+	    {Training set}
+	    {irmas-test-instances_per_class}
+	    {Test set}
+	    {IRMAS distribution of classes}
+	    {fig:instances-per-class}
+
+Due to the fact that the training set is always of the 3 seconds duration and is labeled with a single label, the validation set is more interesting to visualize. Notice how we did not say that the training set is always single-label, as that would be incorrect. Other instruments are present during some segments, but remain unlabeled. As we have randomly split the given validation set into validation and testing sets using the ratio 30:70 (more on this in Chapter~\ref{ch:data-preparation}), we only visualize the test set here. Keep in mind that due to the random split, the distributions would (and do -- we've checked!) look the same, but we take the test set as it contains twice as many examples. 
+
+To start with, we again visualize the distribution of instances per class in Figure~\ref{fig:instances-per-class}(b). Although the order of instruments by its number of instances is very similar as in Figure~\ref{fig:instances-per-class}(a), this distribution is much more skewed. In the test set, the factor difference between the number of instances in most and least represented class is close to 15, which is a big change compared to training set's factor of 2. This shows that our validations and testing might be less trustful in macro or macro average metrics. The reason for this is that evaluating on the test set containing only 40 \texttt{cla} examples might yield less trustful \texttt{cla} class metrics than they would be if we had evaluated on the set containing, for example, few thousand \texttt{cla} examples. Unlike the training set, up-/down-sampling of testing or validating examples cannot be performed. Nevertheless, a balanced training set is, in our opinion, more important, as it will yield a high quality model with the weights properly adjusted. This model can than be evaluated on a high-resource dataset, and if the training set data was of a high quality, it would produce good results. It does not hold the other way around -- training a model on a highly imbalanced training set would produce a low quality model which, when evaluated on a high-resource dataset, produces poor macro and macro average results. 
+
+\imagefigurecaption[0.65]{irmas-test-number_of_labels_per_instance}
+			{IRMAS test set -- distribution of the number of labels}
+			{fig:irmas-test-number-of-labels-per-instance}
+
+Since IRMAS test data is multi-labeled, it is interesting to visualize the distribution of the number of labels. Figure~\ref{fig:irmas-test-number-of-labels-per-instance} shows that a high majority of instruments is labeled with either one or two classes, while only few examples are labeled with four or five classes.
+
+\imagefigurecaption[0.6]{irmas-test-co_occurrence_matrix}
+			{IRMAS test set -- label co-occurrence matrix}
+			{fig:irmas-test-co-occurrence}
+
+It is also interesting to show which instruments tend to appear together. Figure~\ref{fig:irmas-test-co-occurrence} shows a symmetric label co-occurrence matrix on the IRMAS test set. Co-occurrences worth mentioning are \texttt{voi-gel}, \texttt{pia-sax}, and \texttt{org-gel}. However, the graph generally favours the instruments occurring numerous times.
+
+\imagefigurecaption[0.6]{irmas-test-duration_distribution}
+	        {IRMAS test set -- duration distribution}
+                {fig:irmas-test-duration-distribution}
+
+Since the duration of examples ranges from 5 to 20 seconds in the IRMAS test (validation) set, we visualize the distribution on a histogram in Figure~\ref{fig:irmas-test-duration-distribution}. A very interesting pattern is observed, showing that a huge majority of evaluation examples is 20 seconds long. At first, this poses a concerning discrepancy between the training and validation/test set. Our way of handling this discrepancy is shown in Sections \ref{sec:window-size} and \ref{sec:aggregation-functions}.
+Furthermore, we found it interesting to visualize how does the duration distribution act when compared to individual classes or when compared to the number of labels per example. Figure~\ref{fig:irmas-test-distributions}(a) shows distribution of the example duration per each dataset class. At first, \texttt{cla} appears to be the most uniformly distributed class in terms of example duration. However, we need to take into account that it does not have enough examples for its distribution to be trustful. \texttt{voi} and \texttt{pia} have \textit{the thickest left tails}, meaning that, among 11 classes, they are the ones with the most percentage of examples of a short duration. Additionally, \texttt{voi} is relatively equally distributed, apart from a thick right tail which is present in every class. \texttt{sax} is an instrument with the largest percentage of examples of a long duration, e.g. thickest right tail. Figure~\ref{fig:irmas-test-distributions}(b) shows the distribution of duration per number of labels. The distribution for 5 labels appears uniform, but it is so due to an insufficient number of examples. There are no unusual patterns emerging, apart from the aforementioned distribution of duration, where the majority of examples is 20 seconds long. 
+
+\asideimages{7.3cm}{7.3cm}
+	    {irmas-test-durations_per_class}
+	    {Duration per class}
+            {irmas-test-durations_per_num_labels}
+	    {Duration per number of labels}
+	    {IRMAS test set -- duration per class and number of labels}
+	    {fig:irmas-test-distributions}
+
+%\subsection{Quality}
+%TO DO: Ovdje mozda manualno pogledat slucajnih 10-20 primjera iz train/valid seta pa prokomentirat kvalitetu dataseta.
+
+\section{Audioset Dataset}
+\label{sec:audioset}
+
+\subsection{Overview}
+\label{sec:audioset:overview}
+Due to the quality concerns, label imbalance in the validation set, and the ever insufficient number of examples in the IRMAS dataset, we have decided on using the Audioset dataset as well \cite{audioset2017}. In Section~\ref{sec:data-prep:collecting-audioset} we describe how we have obtained the dataset. In this section we will instead talk about the characteristics of the Audioset.
+To start with, we've ensured that the same 11 labels present in IRMAS are present here as well. For that reason, in this work, we will refer to \textit{Audioset} as our modified version of the dataset.
+Audioset is counting $20,885$ examples which, after splitting the dataset using the 0.7/0.1/0.2 train/val/test split, produces $14,619$ training examples, compared to 6705 in IRMAS (Section ~\ref{sec:irmas-dataset:overview}). The videos downloaded from YouTube were sampled at $44.1$ kHz. However, we cannot know with which sample rate they were originally uploaded, so there was most likely some up-sampling done in the process. Another important difference is that the training samples are now exactly 10 seconds long and possibly contain multiple labels. However, unlike IRMAS, the voice or instrument is not required to appear for the entire duration of the audio. This will later me important for splitting the training or evaluating examples into smaller windows, which is described in Section~\ref{sec:window-size}. 
+
+\subsection{Visualizations}
+\label{sec:audioset:visualizations}
+The best way to understand this new dataset is again by visualizing it. We first plot the distribution of instances per class in Figure~\ref{fig:audioset-train-class-distributions}.
+Compared to IRMAS (Figure~\ref{fig:instances-per-class}), this dataset is more balanced, especially compared to IRMAS evaluation data. 
+\imagefigurecaption[0.4]{audioset-train-instances_per_class}
+	        {Audioset train set -- distribution of classes}
+                {fig:audioset-train-class-distributions}
+Since all the files are of the 10 seconds duration, we only visualize the label co-occurrence matrix and the distribution per number of labels in Figure~\ref{fig:audioset-cooccurrence-label-dist} (a) and (b) respectively. \texttt{cel - vio} is the most often co-occurrence, followed by \texttt{gel - gac}, \texttt{org - pia}, and \texttt{pia - vio}. As for the distribution of the number of labels, Audioset has a large majority of examples labeled with one class only. 
+
+\asideimages{8cm}{6.5cm}
+	    {audioset-train-co_occurrence_matrix}
+	    {Label co-occurrence matrix}
+            {audioset-train-number_of_labels_per_instance}
+	    {Distribution of the number of labels}
+	    {Audioset training set -- label co-occurence matrix and distribution of the number of labels}
+	    {fig:audioset-cooccurrence-label-dist}
+
+%\subsection{Quality}
+%\label{sec:audioset:quality}
+
+\section{Statistical Testing}
+\label{sec:statistical-testing}
+In order to quantify the quality of previously discussed features (Section ~\ref{sec:audio-features}) in the context of the data available to us (Sections~\ref{sec:irmas-dataset},~\ref{sec:audioset}), we conduct a one-way ANOVA (ANalysis Of VAriance). It is a technique of testing if all the means of $k$ different populations are equal. In our case, we chose 11 IRMAS training set instruments groups as populations. To be exact, means of all the features described in Section~\ref{sec:audio-features} for each instrument group. In simplified terms, for each instrument within a group, e.g. \texttt{cel}, we calculate a desired feature, e.g. spectral centroid (Section~\ref{sec:spectral-centroid}) and calculate its mean. Thus, for each audio example we obtain a single number in a case of a one-dimensional feature, such as spectral centroid. In case of a multi-dimensional feature, e.g. MFCC (Section~\ref{sec:mfcc}), we calculate mean for each dimension and obtain the number of features equal to the number of dimensions. Now, in case of an $n$-dimensional feature, we get an $n$-dimension vector of means per each instrument group. We are interested if means across each dimension vary for any two instruments within the group.
+
+In the statistical language, this translates to the following hypotheses:
+\begin{equation*}
+\begin{aligned}
+H_0&: \mu_1 = \mu_2 = \dots = \mu_k, \\
+H_1&: \text{At least two of the means are not equal.}
+\end{aligned}
+\end{equation*}
+It is assumed that the $k$ populations are independent and normally distributed
+with means $\mu_1$, $\mu_2$, $\dots$, $\mu_k$, and common variance $\sigma^2$.
+To start with, a common variance $\sigma^2$. might not always be justified. Previously mentioned features, such as Zero-Crossing Rate (Section~\ref{sec:zero-crossing-rate}) and Root-Mean-Square-Energy (Section~\ref{sec:root-mean-square-energy}) may vary in a greater amount for electronic music, compared to classical music. A comparison of a classical (\texttt{vio}) and electronic (\texttt{gel}) Zero-Crossing Rate and Root-Mean-Squared-Energy is shown in Figure~\ref{fig:zcr-rmse}. One can observe a higher variance in the Zero-Crossing Rate in the \texttt{gel} example. The difference is even more exaggerated in case of the Root-Mean-Squared-Energy. However, the lack of the justification of the common variance assumption does not necessarily call for the immediate stop of the procedure. Instead, the obtained $p$-values will be less precise and trustful. With that in mind, we continue the procedure and opt for a very low $p$-value for making any conclusions. A common mistake in statistical testing is choosing the $p$-value after already conducting the experiment and obtaining the $p$-values. Instead, we here define the $p$-value to be $0.001$. As a reference, a common $p$-value is, for example, $0.05$. Due to the mentioned questionable existence of the common variance, we opt for a much lower number in order to avoid any type 1 errors of rejecting the $H_0$ when it's actually true.
+When it comes to the assumption of independent and normally distributed populations, that assumption is not infringed. For more technical details of the one-way ANOVA, we refer readers to \cite{walpole1993probability}.
+
+\imagefigurecaption[0.8]{zcr-rmse}
+	        {Zero-Crossing Rate and Root-Mean-Squared-Energy of the \texttt{vio} and \texttt{gel} audio examples.}
+                {fig:zcr-rmse}
+
+After conducting the one-way ANOVA, we've obtained \textit{extremely} significant results for every feature from Section~\ref{sec:audio-features}, apart from tonnetz (Section~\ref{sec:tonnetz}). By \textit{extremely}, we refer to the values of around 1e-150, some even smaller. In fact, some $p$-values were even smaller than 1e-300 and Python described them numerically as Zeros. For tonnetz, $\texttt{m3}_x$, $\texttt{m3}_y$, $\texttt{M3}_x$, and $\texttt{M3}_y$ were not significant or were very close to not being significant, which is also worth mentioning with the sizes of other $p$-values considered. Such small $p$-values are, of course, due to the difference in means, but also due to the sample size. Namely, one-way ANOVA uses the sample size in calculating the $F$ statistics, which is used to calculate the $p$-value.
+
+It is important to mention that averaging the feature across the time dimension causes a major information loss and would not be considered an actual advanced technique of classifying the instruments. Besides, ignoring the feature interactions and treating them independently is also a simple and ineffective technique. This one-way ANOVA experiment was conducted just to show that the values of the chosen features generally differ for our instrument groups and are a good starting point for the musical information retrieval. 

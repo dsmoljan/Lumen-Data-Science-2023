@@ -1,0 +1,5 @@
+general:
+  data_mean: -0.000431315
+  data_std: 0.126361664
+  log_mel_spectrogram_mean: -4.2677393
+  log_mel_spectrogram_std: 4.5689974

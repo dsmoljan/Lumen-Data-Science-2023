@@ -1,0 +1,7 @@
+fastapi
+torch
+numpy
+uvicorn
+python-multipart
+librosa
+scikit-image
