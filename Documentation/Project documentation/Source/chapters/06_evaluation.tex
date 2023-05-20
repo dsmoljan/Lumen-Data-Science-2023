@@ -1,0 +1,98 @@
+\newchapter{Evaluation}{ch:evaluation}
+
+In this section, we will go over evaluating our experiments. After building the models and running them, it is important to evaluate and compare them properly. Additionally, we will describe some additional steps we took in order to best utilize our models and their outputs to achieve better results.
+
+\section{Metrics}
+\label{sec:metrics}
+To start with, we define the metrics used for the evaluation of our models. As stated by the competition organizer, \textbf{hamming score} is used for the final evaluation, so we include it in our evaluation as well. For the multi-label classification problem, Hamming score, macro accuracy, and micro accuracy have the same metric values. However, Hamming score does not account for label imbalance. As we believe that performing well on all of the labels, not just the high-resource ones, is very important, we include \textbf{macro F1-score} in our evaluation. Additionally, when we want to discuss the precision and recall of some of our models separately, we discuss the \textbf{macro precision} and \textbf{macro recall}. Additionally, we include \textbf{exact match accuracy}, which accounts for the number of examples whose predictions were exactly matched divided by the total number of examples. 
+
+When choosing the best model, we look into the performance on the validation set. Since we kept the maximum of one checkpoint during the entire training, we needed to define the validation metric which will be used for deciding whether or not a checkpoint should be saved. We choose the validation loss as the metric. More specifically, we chose the validation loss calculated after performing the S2 aggregation over the validation examples. The reason behind this decision is that the same aggregation technique will be used for testing the model, so we wanted to actually save the model that is later most likely to perform the best on test data. We did not choose other metrics, such as hamming score and macro F1-score, because they do not give any insight into how confident is the model in its predictions. A checkpoint with the lowest validation loss should be the most general and should not suffer from overfitting. 
+
+\section{Window sizes}
+\label{sec:eval:window-sizes}
+We start by discussing the effect of different window sizes (Section~\ref{sec:window-size}) during training and evaluation. We conduct this experiment using the ResNet model. Three different models were trained using respective window sizes of 1, 2, and 3 seconds on training, validation, and test data. The S2 aggregation function was used during evaluation, as introduced in Section~\ref{sec:aggregation-functions}. The results are shown in Figure~\ref{fig:resnet-window-sizes}. We observe that using the window size of 1 second performs slightly better than the window size of 2 or 3 seconds. Thus, we use the window size of 1 second and the aggregation function S2 throughout most of our experiments conducted on the IRMAS dataset later.
+\imagefigurecaption[0.9]{resnet-window-sizes-comparison}
+	        {ResNet performance on IRMAS test set using different window sizes}
+                {fig:resnet-window-sizes}
+
+\section{Non-pretrained CNN models}
+\label{sec:eval:cnn-models}
+After finding the optimal window size for the IRMAS dataset, we evaluate our non-pretrained CNN models. All the models were trained exclusively on IRMAS, using the previously found optimal window size of 1s. The performance comparison is shown in Figure~\ref{fig:cnn-performance}(a). The window size was 1 and the aggregation function was S2. To start with, the performance is significantly worse than ResNet. That is expected since ResNet is a pre-trained model with $27 \times$, $131 \times$, and $206 \times$ more parameters than MFCC 2-D CNN, raw audio 1-D CNN, and audio features 1-D CNN respectively. Next, comparing the performance of the non-pretrained CNN models themselves, it varies by different degrees for different metrics. Although the hamming score is very similar for all three models, with 1-D CNN audio features model being slightly worse, exact match accuracy performance and especially macro F1 performances vary. After noticing such a discrepancy, we additionally decided to plot the macro precision and macro recall of the two models on Figure~\ref{fig:cnn-performance}(b). The plots show that the CNN raw audio model has a much higher recall than the CNN audio features model, with their precision values almost the same. This suggests that performing a convolution directly on the raw audio allows us to catch more of the total positive labels. However, when claiming that some label in the example is positive, these two models have a similar hit rate. The fact that this happens implies that the CNN model on raw audio causes more positive labels in total compared to the CNN model on audio features, with a similar hit rate when claiming that some instrument (or voice) is present in the example. This suggests the convolution on the raw audio managed to learn the data better than the convolution on the audio features passed into separate channels.
+
+\asideimages{14cm}{14cm}
+	    {cnn-performance}
+	    {Hamming score, exact match accuracy, and macro F1 score comparison on IRMAS test set.}
+	    {cnn-precision-recall}
+	    {Macro precision and recall comparison of 1-D CNN audio features and 1-D CNN raw audio models.}
+	    {Performance comparison of the non-pretrained CNN models using the window size 1s}
+	    {fig:cnn-performance}
+
+Regarding the better exact match accuracy performance of the audio features CNN model, it is probably due to the model learning some spurious patterns in the data. This possibly led to the model performing well on specific audio instances (e.g. predicting all the labels correctly), but being unable to generalize well. This shows the importance of using and inspecting different performance metrics before making any conclusions. 
+
+
+\section{Dynamic Sampling}
+\label{sec:eval:dynamic-sampling}
+Two dynamic sampling methods were introduced in Section~\ref{sec:data-prep:dynamic-sampling}. For the sake of comparison of the dynamic sampling methods (with the non-dynamic sampling model), we go back to the ResNet. The performance comparison is shown in Figure~\ref{fig:resnet-dynamic}(a). As previously mentioned, we sample and overlap anywhere from 1 to 5 examples at a time. We have experimented with sampling the maximum of 4 and the maximum of 5 examples as the time, which is denoted as -4 and -5 on the graph labels. \textit{true-dynamic-5} denotes that 5 samples were dynamically sampled and overlapped. \textit{base-sample-persistent-dynamic-5} indicates that, including the current sample, a maximum of 5 samples were included, i.e. maximum of 4 additional. We also experiment with window sizes of 1 and 3 seconds, which is denoted on the graph as \textit{window-1} and \textit{window-3}. Two different dynamic sampling techniques are denoted as \textit{true-dynamic} and \textit{base-sample-persistent-dynamic}. None of the 4 examined methods achieves significantly better results than the others. Since dynamic sampling generally causes more positive labels within the sample, we were interested in how that affects precision and recall. Figure~\ref{fig:resnet-dynamic}(b) shows that the model trained using dynamic sampling has higher recall and lower precision. This intuitively makes sense. Dynamic sampling caused the model to see more positive labels within the samples during training, which consequently makes it label more of them as positive during evaluation. This increases the recall, but decreases the precision, leaving the F1-score roughly the same. This is useful if one needs to build models to which either precision or recall is of greater importance than the other of two.
+
+%\imagefigurecaption[1.0]{resnet-dynamic}
+%	        {IRMAS test set comparison of different dynamic sampling methods using the ResNet model.}
+%                {fig:resnet-dynamic}
+
+\asideimages{14cm}{14cm}
+	    {resnet-dynamic}
+	    {IRMAS test set comparison of different dynamic sampling methods using the ResNet model. BSPDS is short for base sample persistent dynamic sampling, TDS for true dynamic sampling. The number next to the acronym designates the maximum number of sampled files.}
+	    {dynamic-prec-recall}
+	    {Macro precision and recall comparison of the dynamic and non-dynamic method.}
+	    {IRMAS test set comparison of different dynamic sampling methods using the ResNet model.}
+	    {fig:resnet-dynamic}
+
+\section{Audioset}
+\label{sec:eval:audioset}
+We trained our models on the Audioset models as well. For the sake of comparison, we show 4 combinations of (train, test) datasets -- (Audioset, IRMAS), (Audioset, Audioset), (IRMAS, Audioset), (IRMAS, IRMAS) respectively. All the combinations used ResNet model. In Figure~\ref{fig:audioset-irmas}, we compared their performances. The models listed here in the text from left to right are listed in the plot from higher to lower. The models trained and evaluated on the same dataset (orange, green) work much better than models which were trained on one and evaluated on the other dataset (purple, grey). Audioset, in general, has higher metrics compared to IRMAS, which suggest that it is easier and possibly cleaner. The model trained on Audioset and tested on IRMAS (purple) is significantly worse than the model both trained and tested on IRMAS (green). The same goes for vice versa (grey and orange). We were hoping that introducing a new dataset with more balanced and numerous labels would bring some performance points. However, that was not the case. Neither of the models (trained on either Audioset or IRMAS) managed to generalize well on the sound from other datasets. 
+
+\imagefigurecaption[1.0]{audioset-irmas}
+	        {Comparison of the ResNet model(s) trained and evaluated on Audioset/IRMAS}
+                {fig:audioset-irmas}
+
+\section{AST}
+\label{sec:eval:ast}
+AST was expected to perform better than other models due to its powerful architecture and the fact that it was pre-trained on the complete Audioset. The comparison of the AST and ResNet models both trained on Audioset and tested on IRMAS is shown in Figure~\ref{fig:ast-performance}(a). Unlike our expectations, the models perform very similarly, with ResNet even performing slightly better. After further inspection of the AST training and validation metrics, we decided to increase the L2 regularization by increasing the weight decay in Adam from 1e-5 and 1e-5 to 1e-3 and 1e-4 for the optimizer of the classifier and all the other parameters respectively. The performance of IRMAS training and validation loss of the same AST model, with the only difference in L2 regularization, is shown in Figure~\ref{fig:ast-l2}(a,~b). We can see that the training loss of the AST model with less regularization is lower than the one with more regularization. However, validation loss of AST with more regularization reaches a lower peak much sooner than the model with less regularization. What's more, that peak is much lower than the one of the models with lower regularization, especially if you take into account that smoothing was applied on the graph. The performance difference on the IRMAS set is shown in Figure~\ref{fig:ast-performance}(b). Again, the model with more regularization performs significantly better. This leads to the conclusion that, due to many parameters, AST model is too complex for the problem and overfits to the training data. Consequently, we choose the model with higher regularization.
+
+\asideimages{14cm}{14cm}
+	    {ast-resnet-audioset-comparison}
+	    {Comparison of the RestNet and AST model trained on Audioset and tested on IRMAS.}
+	    {ast-l2-performance}
+	    {Comparison of the same AST models with different L2 regularization trained on IRMAS.}
+	    {AST performance.}
+	    {fig:ast-performance}
+
+\asideimages{14cm}{14cm}
+	    {ast-l2-train-loss}
+	    {Training loss.}
+	    {ast-l2-valid-loss}
+	    {Validation loss with smoothing of 0.75.}
+	    {AST L2 regularization comparison.}
+	    {fig:ast-l2}
+
+\section{General}
+\label{sec:eval:general}
+The overview of the computational demands and training times for all of the models is shown in Figure~\ref{fig:gpu-power}. All the models use a batch size of 16 and the window size of 1. Any other (hyper)parameters that would affect the training times of the models are also the same. Due to the reduced spectrogram width when using window size 1 for AST, it is actually the fastest-training model, although it has by far the most parameters. This is mostly due to the fact that Transformers are data-parallel and, due to their success, training them on GPUs became more and more efficient. On the other hand, 1-D CNN on audio features is the longest and least efficient of all the training models. When we add to this its performance, we come to the conclusion that our experimentation of passing each feature as a separate channel into 1-D convolution was not a successful idea. However, one first needs to fail trying many times in order to achieve something great. 
+
+\imagefigurecaption[1.0]{gpu-power}
+	        {Comparison of the computational demands and training times of all the models using window size 1s on IRMAS.}
+                {fig:gpu-power}
+
+
+\section{Final model}
+
+Choosing a final model proved to be an interesting task, to say the least. There were three final contenders, all trained on IRMAS: the surprisingly well-performing ResNet-50 trained on static data with window size 1, the ResNet-50 model trained using base-sample-persistent dynamic sampling with window size 3, and the AST trained using window size 1 and stronger regularization. 
+
+
+In the end, we decided to choose the ResNet-50 model trained with dynamic sampling as our final model; simply as it was, technically, the best-performing model on 2 out of 3 metrics, and due to the smaller size and overhead compared to the AST. 
+
+However, we believe the true value of our work does not lie in the exact model we decided to choose, but in the various new approaches we introduced, explained, and meticulously evaluated and compared. We believe our work can serve as a good starting point for future exploration and research of new ideas regarding instrument detection and audio analysis in general. One idea we are particularly intrigued by, which we did not have enough time to properly implement and evaluate, is an ensemble of dynamically and statically trained models - we believe this combination of models could lead to an improvement in the results, as the ensemble model could benefit from the increased recall of the dynamic model, while at the same time not loosing too much precision in the process due to the influence of the statically trained model. Of course, there are many more excellent ideas waiting to be discovered in the exciting task of instrument recognition and audio analysis.
+
+\imagefigurecaption[1.0]{best-models-comparison}
+	        {Comparison of the best-performing models taken into consideration for the final model}
+                {fig:best-models-comparison}
+

@@ -4,7 +4,7 @@ import streamlit as st
 import pandas as pd
 import soundfile as sf
 
-ENDPOINT_URL = "http://localhost:8080/api/predict"
+ENDPOINT_URL = "http://backend:8080/api/predict"
 
 # defines an h1 header
 st.title("Audio classification app")
@@ -31,10 +31,6 @@ def send_file_to_endpoint(audio_file):
     files = {"audio_file": audio_file.getvalue()}
     response = requests.post(ENDPOINT_URL, files=files)
     return response.json()
-    # with open(audio_file, "rb") as f:
-    #     files = {"audio_file": f}
-    #     response = requests.post(ENDPOINT_URL, files=files)
-    #     return response.json()
 
 
 # add a file upload form
@@ -56,7 +52,6 @@ if st.button("Submit"):
     # Make sure the user has uploaded a file
     if audio_file is not None:
         # Send the file to the endpoint
-
 
         response = send_file_to_endpoint(audio_file)
         # convert the response to a dictionary

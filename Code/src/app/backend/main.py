@@ -10,7 +10,6 @@ from model_wrapper import ModelWrapper
 
 app = FastAPI()
 
-# Allow CORS for local debugging
 app.add_middleware(CORSMiddleware, allow_origins=["*"])
 
 
@@ -38,7 +37,6 @@ async def do_predict(request: Request, audio_file: UploadFile = File(...)):
     :param body: body of the HTTP request, containing the audio file to classify
     :return:
     """
-    # Load the audio file from the request body
     contents = await audio_file.read()
     audio_signal, sr = lr.load(BytesIO(contents), sr=None, mono=True)
     if sr != 44100:

@@ -1,0 +1,112 @@
+\newcommandtwoopt{\KittelEquationExpandedX}[2][Theoretical Kittel equation expanded for a Permalloy thin-film for X-axe][fig:kittel-x]{
+        \vspace{-0.5cm}
+        \setequation{0cm}{0cm}{
+		\small{\[\textit{f} = 28\cdot\sqrt{(B_{DC}+(N_y-N_x)\cdot0.86\cdot10^6\cdot4\pi\cdot10^{-7})\cdot(B_{DC}+(N_z-N_x)\cdot0.86\cdot10^6)\cdot4\pi\cdot10^{-7}}\]}
+        }{#2}{#1}
+}
+
+\newcommandtwoopt{\KittelEquationExpandedXBoxed}[2][Theoretical Kittel equation expanded for a Permalloy thin-film for X-axe][fig:kittel-x-box]{
+	\vspace{-0.5cm}
+	\setequationboxed{0cm}{0cm}{
+		\colorboxed{red}{11pt}{
+			\begin{aligned}
+				&f = 28\cdot\sqrt{(B_{DC}+(N_y-N_x)\cdot0.86\cdot10^6\cdot4\pi\cdot10^{-7})\cdot(B_{DC}+(N_z-N_x)\cdot0.86\cdot10^6)\cdot4\pi\cdot10^{-7}} \\ 
+				&\text{This line is a comment in boxed formula}
+			\end{aligned}
+		}
+	}{#2}{#1}{0.11cm}
+	\vspace{0.8cm}
+}
+
+\newcommandtwoopt{\KittelEquationExpandedXBoxedSimple}[2][Theoretical Kittel equation expanded for a Permalloy thin-film for X-axe][fig:kittel-x-box-simple]{
+	\vspace{-0.5cm}
+	\setequationboxed{0cm}{0cm}{
+		\colorboxed{red}{11pt}{
+			f = 28\cdot\sqrt{(B_{DC}+(N_y-N_x)\cdot0.86\cdot10^6\cdot4\pi\cdot10^{-7})\cdot(B_{DC}+(N_z-N_x)\cdot0.86\cdot10^6)\cdot4\pi\cdot10^{-7}}
+		}
+	}{#2}{#1}{0.11cm}
+	\vspace{0.8cm}
+}
+
+\newcommandtwoopt{\ZCRequation}[2][Zero-crossing Rate][eq:zero-crossing-rate]{
+        \vspace{-0.5cm}
+        \setequation{0cm}{0cm}{
+            \begin{equation}
+                ZCR_t = \frac{1}{2} \cdot \sum\limits_{k = t \cdot K}^{(t+1) \cdot K -1} |\text{sgn}(s(k)) - \text{sgn}(s(k + 1))|
+            \end{equation}
+        }{#2}{#1}
+}
+
+
+\newcommandtwoopt{\RMSEequation}[2][Root-Mean-Square-Energy][eq:rmse]{
+        \vspace{-0.5cm}
+        \setequation{0cm}{0cm}{
+            \begin{equation}
+                RMSE_t = \sqrt{\frac{1}{K} \cdot \sum\limits_{k=t \cdot K}^{(t+1) \cdot K - 1} s(k)^2}
+            \end{equation}
+        }{#2}{#1}
+}
+
+\newcommandtwoopt{\SCequation}[2][Spectral Centroid][eq:spectral-centroid]{
+        \vspace{-0.5cm}
+        \setequation{0cm}{0cm}{
+            \begin{equation}
+                SC_t = \frac{\sum\limits_{n=1}^{N}m_t(n) \cdot n}{\sum\limits_{n=1}^{N}m_t(n)}
+            \end{equation}
+        }{#2}{#1}
+}
+
+\newcommandtwoopt{\BWequation}[2][Spectral Bandwidth][eq:spectral-bandwidth]{
+        \vspace{-0.5cm}
+        \setequation{0cm}{0cm}{
+            \begin{equation}
+                BW_t = \frac{\sum\limits_{n=1}^{N}|n - SC_t| \cdot m_t(n)}{\sum\limits_{n=1}^{N}m_t(n)}
+            \end{equation}
+        }{#2}{#1}
+}
+
+\newcommandtwoopt{\SRequation}[2][Spectral Rolloff][eq:spectral-rolloff]{
+        \vspace{-0.5cm}
+        \setequation{0cm}{0cm}{
+            \begin{equation}
+                \underset{f_t \in \{1, \dots , N\}}{\arg \min}\sum\limits_{i=1}^{f_t}m_t(i) \ge p_r \cdot \sum\limits_{i=1}^{N} m_t(i)
+            \end{equation}
+        }{#2}{#1}
+}
+
+\newcommandtwoopt{\SFequation}[2][Spectral Flatness][eq:spectral-flatness]{
+        \vspace{-0.5cm}
+        \setequation{0cm}{0cm}{
+            \begin{equation}
+                SF_t = \frac{\sqrt[N]{\Pi_{n=0}^{N-1}m(n)}}{\frac{\sum_{n=0}^{N-1}m(n)}{N}}
+            \end{equation}
+        }{#2}{#1}
+}
+
+\newcommandtwoopt{\FourierTransformEquation}[2][Discrete Fourier transform][eq:fourier-transform]{
+        \vspace{-0.5cm}
+        \setequation{0cm}{0cm}{
+            \begin{equation}
+                X_m = \sum\limits_{k=0}^{K-1}x_k \cdot e^{-\frac{2 \cdot \pi \cdot i}{K} \cdot k \cdot m}
+            \end{equation}
+        }{#2}{#1}
+}
+
+\newcommandtwoopt{\DynamicSamplingNoSamples}[2][Determining number of samples for dynamic sampling][eq:no-dynamic-sampling]{
+        \vspace{-0.5cm}
+        \setequation{0cm}{0cm}{
+            \begin{equation}
+                N = \log\left(P, 1 - \frac{1}{n}\right) \times \frac{1}{n} \times \frac{2}{{\text{{minSampled}} + \text{{maxSampled}}}} \times n
+            \end{equation}
+        }{#2}{#1}
+}
+
+\newcommandtwoopt{\EQbce}[2][Binary cross-entropy loss][eq:bce]{
+        \vspace{-0.5cm}
+        \setequation{0cm}{0cm}{
+            \begin{equation}
+                l(x, y) = L = \{l_1, \dots , l_N\}, \: l_n = y_n \cdot \text{log}x_n + (1 - y_n) \cdot \text{log}(1 - x_n)
+            \end{equation}
+        }{#2}{#1}
+}
+

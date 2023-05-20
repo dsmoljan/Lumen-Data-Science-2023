@@ -2,21 +2,20 @@ from typing import List
 
 import numpy as np
 import torch
-import json
 
 from torch import nn
 
 from preprocessing import preprocess_spectogram
 
 #BASE_MODEL_CHECKPOINT = "./checkpoints/resnet_model_window_3s.pt"
-BASE_MODEL_CHECKPOINT = "./checkpoints/resnet_window_1.pt"
+BASE_MODEL_CHECKPOINT = "./checkpoints/dynamic_model_window_3.pt"
 
 class_mappings = {"cel": 0, "cla": 1, "flu": 2, "gac": 3, "gel": 4, "org": 5, "pia": 6, "sax": 7, "tru": 8, "vio": 9,
                   "voi": 10}
 
 class_labels = ["cel", "cla", "flu", "gac", "gel", "org", "pia", "sax", "tru", "vio", "voi"]
 
-WINDOW_SIZE = 1
+WINDOW_SIZE = 3
 
 SR = 44100
 N_MFCC = 13
@@ -32,7 +31,7 @@ class ModelWrapper():
     """
     def __init__(self):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.base_model = torch.jit.load(BASE_MODEL_CHECKPOINT)
+        self.base_model = torch.jit.load(BASE_MODEL_CHECKPOINT, map_location=self.device)
         self.base_model.to(self.device)
         self.activation = nn.Sigmoid()
 
@@ -50,7 +49,6 @@ class ModelWrapper():
             final_predictions = np.array(outputs_sum > THRESHOLD, dtype=int)
 
             class_dict = {class_labels[i]: int(final_predictions[i]) for i in range(len(class_labels))}
-            class_json = json.dumps(class_dict)
             return class_dict
 
     # imaj na umu da ako radiš s modelom treniranim na audiosetom, onda moraš normalizirati koristeći

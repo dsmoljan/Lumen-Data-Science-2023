@@ -1,4 +1,4 @@
-# default values are IRMAS valurs
+# default values are IRMAS values
 general:
   data_mean: -0.000404580
   data_std: 0.108187131

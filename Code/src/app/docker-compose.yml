@@ -1,5 +1,18 @@
 version: '3'
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - 8501:8501
+    depends_on:
+      - backend
+    volumes:
+      - ./storage:/storage
+    networks:
+      - my-network
+
   backend:
     build:
       context: ./backend
@@ -7,10 +20,12 @@ services:
     ports:
       - 8080:8080
     runtime: nvidia
+    volumes:
+      - ./storage:/storage
+    networks:
+      - my-network
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - 8501:8501
+
+networks:
+  my-network:
+    driver: bridge
