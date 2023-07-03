@@ -1,7 +1,8 @@
-# Lumen-Data-Science-2023
-### Team: Harmony Is All You Need
-#### Members: Dorian Smoljan, Tin Ferković
-#### 3rd place winner
+# Lumen-Data-Science-2023  
+Team: Harmony Is All You Need  
+Members: Dorian Smoljan, Tin Ferković  
+3rd place winner
+
 Repository for the Lumen Data Science 2023 competition.
 
 Here you can find our solution to the problem of multi-label audio classification. This [task](https://drive.google.com/file/d/16SPgrFzO6uFc0Za-gjOOY9zCUF7shMXX/view) was the topic of the 2023 competition organized by e-student.
